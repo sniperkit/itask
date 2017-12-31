@@ -1,6 +1,8 @@
-package itask
+package xtask
 
-import "sync"
+import (
+	"sync"
+)
 
 /*
 Each return value of handler indicates whether to continue chain call

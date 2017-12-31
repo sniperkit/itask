@@ -1,4 +1,4 @@
-package itask
+package xtask
 
 type Chain struct {
 	terminate bool
