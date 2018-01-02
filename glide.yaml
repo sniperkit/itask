@@ -1,2 +1,28 @@
 package: github.com/sniperkit/xtask
-import: []
+ignore:
+- github.com/jbrukh/bayesian
+import:
+- package: gopkg.in/toqueteos/substring.v1
+- package: github.com/fatih/color
+- package: github.com/fatih/structs
+- package: github.com/google/go-github
+  subpackages:
+  - github
+- package: github.com/gregjones/httpcache
+- package: github.com/ishare/itask
+- package: github.com/juju/errgo
+- package: github.com/rafaeldias/async
+- package: github.com/satori/go.uuid
+- package: github.com/segmentio/stats
+  subpackages:
+  - httpstats
+- package: github.com/shomali11/util
+  subpackages:
+  - xconcurrency
+- package: github.com/sniperkit/flatten
+- package: github.com/sniperkit/xcache
+  subpackages:
+  - backend/default/badger
+  - backend/default/diskv
+- package: github.com/xh3b4sd/taskq
+- package: golang.org/x/oauth2

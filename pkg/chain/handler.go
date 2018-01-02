@@ -1,4 +1,4 @@
-package xtask
+package chain
 
 import (
 	"reflect"
