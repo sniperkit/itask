@@ -16,16 +16,16 @@ const (
 )
 
 var (
-	ErrNoTasks = errgo.New("No tasks")
-	Mask       = errgo.MaskFunc(IsErrNoTasks)
+	errNoTasks = errgo.New("No tasks")
+	mask       = errgo.MaskFunc(isErrNoTasks)
 )
 
 type Error string
 
 func (e Error) Error() string { return string(e) }
 
-func IsErrNoTasks(err error) bool {
-	return errgo.Cause(err) == ErrNoTasks
+func isErrNoTasks(err error) bool {
+	return errgo.Cause(err) == errNoTasks
 }
 
 // Errors is a type of []error

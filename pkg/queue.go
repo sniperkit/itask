@@ -1,10 +1,52 @@
 package xtask
 
 import (
+	// "container/list"
 	"log"
+	"math/rand"
 	"reflect"
+	"sync"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
+	"github.com/sniperkit/xtask/plugin/counter"
+	"github.com/sniperkit/xtask/plugin/rate"
+	"github.com/sniperkit/xtask/plugin/tachymeter"
 )
+
+func NewTaskGroup() *TaskGroup {
+	hash := uuid.NewV4()
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &TaskGroup{
+		// list:     list.New(),
+		list:     NewSearchableQueue(),
+		id:       random.Intn(10000),
+		hash:     hash,
+		limiter:  NewLimiter(hash.String()),
+		lock:     &sync.RWMutex{},
+		counters: counter.NewOc(),
+	}
+}
+
+// TaskGroup is a threadsafe container for tasks to be processed
+type TaskGroup struct {
+	name string
+	id   int
+	hash uuid.UUID
+
+	// list       *list.List
+	list       *SearchableQueue
+	lock       *sync.RWMutex
+	state      *State
+	pipeline   *Pipeline
+	shared     interface{} // shared context between tasks
+	registry   map[uuid.UUID]bool
+	limiter    *Limiter
+	counters   *counter.Oc
+	completed  int
+	rate       *rate.RateLimiter
+	tachymeter *tachymeter.Tachymeter
+}
 
 // RunPipeline
 func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Duration) {
@@ -123,19 +165,7 @@ func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Du
 
 }
 
-func (tlist *TaskGroup) Close() {
-	/*
-		if workers != nil {
-			close(workers)
-		}
-		if tasks != nil {
-			close(tasks)
-		}
-		if stop != nil {
-			close(stop)
-		}
-	*/
-}
+func (tlist *TaskGroup) Close() {}
 
 // Process takes a task and does the work on it.
 func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
@@ -164,24 +194,25 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 
 		defer func() {
 			t.isCompleted = true
-			if t.continueWith != nil {
+			tlist.counters.Increment("completed", 1)
+			// if t.continueWith != nil {
+			if t.continueWith.Len() > 0 {
+				tlist.counters.Increment("chained", 1)
 				result := t.Result
 				for element := t.continueWith.Back(); element != nil; element = element.Prev() {
 					if tt, ok := element.Value.(ContinueWithHandler); ok {
 						tt(result)
 					}
 				}
-				tlist.counters.Increment("continue", 1)
 			}
 			log.Println("done task.name: ", t.name, "workerID: ", workerID) //, "counters=", tlist.counters.Snapshot())
 			t.wait.Done()
-			tlist.counters.Increment("completed", 1)
 		}()
 
 		fn := reflect.ValueOf(t.fn)
 		fnType := fn.Type()
 		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(t.args) {
-			tlist.counters.Increment("not_expected", 1)
+			tlist.counters.Increment("unexpected", 1)
 			log.Fatal("Expected a function")
 		}
 
@@ -200,6 +231,7 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 		}
 
 		if t.repeat {
+			tlist.counters.Increment("repeat.every", 1)
 			log.Println("repeat task.name: ", t.name, ", interval:", t.interval)
 			tlist.EnqueueFuncEvery(t.name, t.interval, t.fn, t.args)
 		}
@@ -207,4 +239,137 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 	})
 	log.Println("exit processing for task.name: ", t.name)
 	return t
+}
+
+func (tlist *TaskGroup) AddLimiter(limit int, interval time.Duration, key string) string {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+	tlist.counters.Increment("add.limiter", 1)
+
+	return tlist.limiter.Add(limit, interval, key)
+}
+
+// Push adds a new task into the front of the TaskGroup
+func (tlist *TaskGroup) Len() int {
+	tlist.lock.RLock()
+	defer tlist.lock.RUnlock()
+
+	return tlist.list.Len()
+}
+
+func (tlist *TaskGroup) Next() *Task {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	for element := tlist.list.Front(); element != nil; element = element.Next() {
+		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
+			//if time.Since(task.nextRun) > 0 {
+			return task
+			//}
+		}
+	}
+	return nil
+}
+
+// Get checks if a key exists in our dequeued task list
+func (tlist *TaskGroup) FindByUUID(hash uuid.UUID) bool {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	if _, ok := tlist.registry[hash]; ok {
+		return true
+	}
+	return false
+}
+
+// Remove deletes the dequeued entry once we are done with it
+func (tlist *TaskGroup) RemoveByUUID(hash uuid.UUID) {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	delete(tlist.registry, hash)
+}
+
+// Push adds a new task into the front of the TaskGroup
+func (tlist *TaskGroup) Push(task *Task) {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+	tlist.counters.Increment("push", 1)
+
+	tlist.list.PushFront(task)
+	// tlist.pipeline.New <- true
+}
+
+// Pop grabs the last task from the TaskGroup
+func (tlist *TaskGroup) Pop() *Task {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+	tlist.counters.Increment("pop", 1)
+
+	task := tlist.list.Remove(tlist.list.Back())
+	return task.(*Task)
+}
+
+// Add
+func (tlist *TaskGroup) AddTask(task *Task) *TaskGroup {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	tlist.counters.Increment("add.task", 1)
+	task.nextRun = time.Now()
+	tlist.list.PushFront(task)
+	return tlist
+}
+
+// AddFunc
+func (tlist *TaskGroup) AddFunc(name string, fn interface{}, args ...interface{}) *TaskGroup {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	task := NewTask(name, fn, args...)
+	task.nextRun = time.Now()
+	tlist.list.PushFront(task)
+
+	tlist.counters.Increment("add.func", 1)
+	return tlist
+}
+
+// AddRange
+func (tlist *TaskGroup) AddRange(tasks ...*Task) *TaskGroup {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+	tlist.counters.Increment("add.range", 1)
+
+	for _, task := range tasks {
+		tlist.list.PushFront(task)
+	}
+	return tlist
+}
+
+// RunTaskAsync
+func (tlist *TaskGroup) RunTaskAsync() *TaskGroup {
+	for element := tlist.list.Front(); element != nil; element = element.Next() {
+		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
+			task.RunAsync()
+		}
+	}
+	return tlist
+}
+
+// WaitAll
+func (tlist *TaskGroup) WaitAll() {
+	for element := tlist.list.Front(); element != nil; element = element.Next() {
+		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
+			task.wait.Wait()
+		}
+	}
+}
+
+// enqueue is an internal function used to asynchronously push a task onto the queue and log the state to the terminal.
+func (tlist *TaskGroup) enqueue(task *Task) *TaskGroup {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	tlist.Push(task)
+	return tlist
 }

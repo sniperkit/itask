@@ -1,9 +1,14 @@
-package xtask
+package xtask_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/sniperkit/xtask/pkg"
 )
 
 func TestTaskGroup_Add(t *testing.T) {

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/sniperkit/xtask/plugin/counter"
+	"github.com/sniperkit/xtask/plugin/rate"
 )
 
 // TaskParameter
@@ -18,6 +20,12 @@ type TaskParameter interface{}
 
 // TaskHanlder
 type TaskHanlder interface{}
+
+// A Task is a function called in specified order by RunTasks(). It receives the queues configured context object to operate on.
+type TaskQ func(ctx interface{}) error
+
+// A Task is a function called in specified order by RunTasks(). It receives the queues configured context object to operate on.
+// type Task func(ctx interface{}) error
 
 // Task represents a task to run. It can be scheduled to run later or right away.
 type Task struct {
@@ -29,6 +37,7 @@ type Task struct {
 	params       []reflect.Value
 	hash         uuid.UUID
 	repeat       bool
+	lock         *sync.RWMutex // Controls access to this task.
 	wait         *sync.WaitGroup
 	once         sync.Once
 	continueWith *list.List
@@ -36,6 +45,8 @@ type Task struct {
 	nextRun      time.Time
 	interval     time.Duration
 	isCompleted  bool
+	counters     *counter.Oc
+	rate         *rate.RateLimiter
 	Result       TaskResult
 }
 
@@ -71,20 +82,25 @@ func (task *Task) Wait() {
 
 func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
 	task.once.Do(func() {
-
 		// Use context.Context to stop running goroutines
 		// ctx, cancel := context.WithCancel(context.Background())
 		// defer cancel()
 
 		task.wait.Add(1)
+		task.counters.Increment("started", 1)
+
 		if task.delay.Nanoseconds() > 0 {
+			task.counters.Increment("delayed", 1)
 			time.Sleep(task.delay)
 		}
 
 		defer func() {
 			task.isCompleted = true
-			// tlist.completed += 1
+			task.counters.Increment("completed", 1)
+
 			if task.continueWith != nil {
+				task.counters.Increment("chained", 1)
+
 				result := task.Result
 				for element := task.continueWith.Back(); element != nil; element = element.Prev() {
 					if tt, ok := element.Value.(ContinueWithHandler); ok {
@@ -102,6 +118,7 @@ func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
 		fn := reflect.ValueOf(task.fn)
 		fnType := fn.Type()
 		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(task.args) {
+			task.counters.Increment("unexpected", 1)
 			// log.Panic("Expected a function")
 			log.Print("Expected a function")
 			os.Exit(1)
@@ -132,14 +149,18 @@ func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
 func (task *Task) Run() *Task {
 	task.once.Do(func() {
 		task.wait.Add(1)
+		task.counters.Increment("started", 1)
+
 		if task.delay.Nanoseconds() > 0 {
+			task.counters.Increment("delayed", 1)
 			time.Sleep(task.delay)
 		}
 
-		// go func() {
 		defer func() {
 			task.isCompleted = true
+			task.counters.Increment("completed", 1)
 			if task.continueWith != nil {
+				task.counters.Increment("chained", 1)
 				result := task.Result
 				for element := task.continueWith.Back(); element != nil; element = element.Prev() {
 					if tt, ok := element.Value.(ContinueWithHandler); ok {
@@ -149,12 +170,12 @@ func (task *Task) Run() *Task {
 				}
 			}
 			task.wait.Done()
-			tlist.counters.Increment("completed", 1)
 		}()
 
 		fn := reflect.ValueOf(task.fn)
 		fnType := fn.Type()
 		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(task.args) {
+			task.counters.Increment("unexpected", 1)
 			// log.Panic("Expected a function")
 			log.Print("Expected a function")
 			os.Exit(1)
@@ -173,7 +194,6 @@ func (task *Task) Run() *Task {
 			Result: res,
 		}
 
-		// }()
 	})
 	return task
 }
@@ -195,14 +215,19 @@ func (task *Task) SetUUID(input string) *Task {
 func (task *Task) RunAsync() *Task {
 	task.once.Do(func() {
 		task.wait.Add(1)
+		task.counters.Increment("started", 1)
+
 		if task.delay.Nanoseconds() > 0 {
+			task.counters.Increment("delayed", 1)
 			time.Sleep(task.delay)
 		}
 
 		go func() {
 			defer func() {
 				task.isCompleted = true
+				task.counters.Increment("completed", 1)
 				if task.continueWith != nil {
+					task.counters.Increment("chained", 1)
 					result := task.Result
 					for element := task.continueWith.Back(); element != nil; element = element.Prev() {
 						if tt, ok := element.Value.(ContinueWithHandler); ok {
@@ -247,6 +272,7 @@ func NewTask(name string, fn interface{}, args ...interface{}) *Task {
 		id:           random.Intn(10000),
 		hash:         uuid.NewV4(),
 		wait:         &sync.WaitGroup{},
+		lock:         &sync.RWMutex{},
 		fn:           fn,
 		args:         args,
 		repeat:       false,
@@ -255,6 +281,8 @@ func NewTask(name string, fn interface{}, args ...interface{}) *Task {
 		isCompleted:  false,
 		name:         name,
 		nextRun:      time.Now(),
+		counters:     counter.NewOc(),
+		rate:         &rate.RateLimiter{},
 	}
 
 	return &task

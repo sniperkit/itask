@@ -1,28 +1,31 @@
-/*
-	Copyright 2017 Travis Clarke. All rights reserved.
-	Use of this source code is governed by a Apache-2.0 license that can be found in the LICENSE file.
-*/
-
-package searchablelist
+package xtask
 
 import (
 	"container/list"
+	"sync"
 )
 
 // SearchableList list.List
-type SearchableList struct {
+type SearchableQueue struct {
 	*list.List
+	*sync.RWMutex
 }
 
 // New () *list.List
-func New() *SearchableList {
-	return &SearchableList{new(list.List).Init()}
+func NewSearchableQueue() *SearchableQueue {
+	return &SearchableQueue{
+		new(list.List).Init(),
+		&sync.RWMutex{},
+	}
 }
 
-// (l *SearchableList)
+// (l *NewSearchableQueue)
 
 // ContainsElement (t *list.Element) bool
-func (l *SearchableList) ContainsElement(t *list.Element) bool {
+func (l *SearchableQueue) ContainsElement(t *list.Element) bool {
+	l.Lock()
+	defer l.Unlock()
+
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
 			if e == t {
@@ -33,14 +36,28 @@ func (l *SearchableList) ContainsElement(t *list.Element) bool {
 	return false
 }
 
+// Push adds a new task into the front of the TaskGroup
+func (l *SearchableQueue) Len() int {
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.Len()
+}
+
 // Contains (t *list.Element) bool
 // alias -> ContainsElement
-func (l *SearchableList) Contains(t *list.Element) bool {
+func (l *SearchableQueue) Contains(t *list.Element) bool {
+	l.Lock()
+	defer l.Unlock()
+
 	return l.ContainsElement(t)
 }
 
 // ContainsValue (v interface{}) bool
-func (l *SearchableList) ContainsValue(v interface{}) bool {
+func (l *SearchableQueue) ContainsValue(v interface{}) bool {
+	l.Lock()
+	defer l.Unlock()
+
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
 			if e.Value == v {
@@ -52,7 +69,10 @@ func (l *SearchableList) ContainsValue(v interface{}) bool {
 }
 
 // FindFirst (v interface{}) *list.Element
-func (l *SearchableList) FindFirst(v interface{}) *list.Element {
+func (l *SearchableQueue) FindFirst(v interface{}) *list.Element {
+	l.Lock()
+	defer l.Unlock()
+
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
 			if e.Value == v {
@@ -64,7 +84,10 @@ func (l *SearchableList) FindFirst(v interface{}) *list.Element {
 }
 
 // FindLast (v interface{}) *list.Element
-func (l *SearchableList) FindLast(v interface{}) *list.Element {
+func (l *SearchableQueue) FindLast(v interface{}) *list.Element {
+	l.Lock()
+	defer l.Unlock()
+
 	if l.Len() > 0 {
 		for e := l.Back(); e != nil; e = e.Prev() {
 			if e.Value == v {
@@ -76,7 +99,10 @@ func (l *SearchableList) FindLast(v interface{}) *list.Element {
 }
 
 // FindAll (v interface{}) []*list.Element
-func (l *SearchableList) FindAll(v interface{}) []*list.Element {
+func (l *SearchableQueue) FindAll(v interface{}) []*list.Element {
+	l.Lock()
+	defer l.Unlock()
+
 	if l.Len() > 0 {
 		elList := []*list.Element{}
 		for e := l.Front(); e != nil; e = e.Next() {

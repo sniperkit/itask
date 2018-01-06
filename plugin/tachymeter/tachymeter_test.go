@@ -3,6 +3,7 @@ package tachymeter_test
 import (
 	"testing"
 	"time"
+	// "sync/atomic"
 
 	"github.com/jamiealquiza/tachymeter"
 )
