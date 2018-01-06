@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/stats"
 
 	"github.com/sniperkit/xtask/pkg"
-	"github.com/sniperkit/xtask/test/service/github"
+	"github.com/sniperkit/xtask/plugin/aggregate/service/github"
 	"github.com/sniperkit/xtask/util/runtime"
 )
 

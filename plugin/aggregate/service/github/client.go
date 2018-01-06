@@ -16,10 +16,10 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/sniperkit/cuckoofilter"
-	"github.com/sniperkit/xtask/pkg/util"
+	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"
-	"github.com/sniperkit/xtask/test/service"
+	"github.com/sniperkit/xtask/util/fs"
 
 	"github.com/segmentio/stats/httpstats"
 
@@ -99,18 +99,18 @@ func (g *Github) getClient(token string) *github.Client {
 	if g.xcache == nil {
 		var err error
 
-		util.EnsureDir(CachePrefixPath)
+		fsutil.EnsureDir(CachePrefixPath)
 		CacheEngine = strings.ToLower(CacheEngine)
 
 		switch CacheEngine {
 		case "diskv":
 			cacheStoragePrefixPath := filepath.Join(CachePrefixPath, "cacher.diskv")
-			util.EnsureDir(cacheStoragePrefixPath)
+			fsutil.EnsureDir(cacheStoragePrefixPath)
 			g.xcache = diskcache.New(cacheStoragePrefixPath)
 
 		case "badger":
 			cacheStoragePrefixPath := filepath.Join(CachePrefixPath, "cacher.badger")
-			util.EnsureDir(cacheStoragePrefixPath)
+			fsutil.EnsureDir(cacheStoragePrefixPath)
 			g.xcache, err = badgercache.New(
 				&badgercache.Config{
 					ValueDir:    "api.github.com.v3.snappy",
@@ -357,18 +357,18 @@ func (cm *ClientManager) Shutdown() {
 func getClient(token string) *github.Client {
 	if token != "" {
 		var err error
-		util.EnsureDir(CachePrefixPath)
+		fsutil.EnsureDir(CachePrefixPath)
 		CacheEngine = strings.ToLower(CacheEngine)
 
 		switch CacheEngine {
 		case "diskv":
 			cacheStoragePrefixPath := filepath.Join(CachePrefixPath, "cacher.diskv")
-			util.EnsureDir(cacheStoragePrefixPath)
+			fsutil.EnsureDir(cacheStoragePrefixPath)
 			xcache = diskcache.New(cacheStoragePrefixPath)
 
 		case "badger":
 			cacheStoragePrefixPath := filepath.Join(CachePrefixPath, "cacher.badger")
-			util.EnsureDir(cacheStoragePrefixPath)
+			fsutil.EnsureDir(cacheStoragePrefixPath)
 			xcache, err = badgercache.New(
 				&badgercache.Config{
 					ValueDir:    "api.github.com.v3.snappy",

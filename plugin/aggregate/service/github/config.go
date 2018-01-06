@@ -7,9 +7,10 @@ import (
 	"github.com/gregjones/httpcache"
 
 	"github.com/sniperkit/cuckoofilter"
+
+	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"
-	"github.com/sniperkit/xtask/test/service"
 )
 
 // var log = logger.GetLogger("discovery")
