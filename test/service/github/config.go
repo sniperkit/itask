@@ -1,39 +1,69 @@
 package github
 
 import (
+	"time"
+
 	"github.com/google/go-github/github"
-	"github.com/sniperkit/xtask/pkg/rate"
+	"github.com/gregjones/httpcache"
+
+	"github.com/sniperkit/cuckoofilter"
+	"github.com/sniperkit/xtask/plugin/counter"
+	"github.com/sniperkit/xtask/plugin/rate"
+	"github.com/sniperkit/xtask/test/service"
+)
+
+// var log = logger.GetLogger("discovery")
+
+var (
+	Service             *Github
+	rateLimiters        = map[string]*rate.RateLimiter{} // make(map[string]*rate.RateLimiter)
+	isBackoff           bool
+	defaultOpts         *Options
+	defaultRetryDelay   time.Duration = 3 * time.Second
+	defaultAbuseDelay   time.Duration = 3 * time.Second
+	defaultRetryAttempt uint64        = 1
+	defaultPrefixApi                  = "https://api.github.com/"
 )
 
 var (
-	Service      *Github
-	defaultOpts  *Options
-	rateLimiters = map[string]*rate.RateLimiter{}
+	cfMax    *uint32
+	cfDone   *cuckoofilter.Filter
+	cf404    *cuckoofilter.Filter
+	counters *counter.Oc
 )
 
 var (
 	CacheEngine     = "badger"
 	CachePrefixPath = "./shared/data/cache/http"
+	xcache          httpcache.Cache
 )
 
-type Github struct {
-	ctoken       string
-	coptions     *Options
-	client       *github.Client
-	rateLimiters map[string]*rate.RateLimiter
+func New(tokens []*service.Token, opts *Options) *Github {
+	g := &Github{
+		ctoken:       tokens[0].Key,
+		ctokens:      tokens,
+		coptions:     opts,
+		rateLimiters: make(map[string]*rate.RateLimiter, len(tokens)), // map[string]*rate.RateLimiter{}, //
+		counters:     counter.NewOc(),
+	}
+	g.getClient(tokens[0].Key)
+	return g
+
 }
 
-func New(token *string, opts *Options) *Github {
-	return &Github{
-		ctoken:       *token,
-		coptions:     opts,
-		client:       getClient(*token),
-		rateLimiters: make(map[string]*rate.RateLimiter),
-	}
+func Init() {
+	defaultOpts = &Options{}
+	defaultOpts.Page = 1
+	defaultOpts.PerPage = 100
+	Service = New(nil, defaultOpts)
 }
 
 func (Github) ProviderName() string {
 	return serviceName
+}
+
+func (Github) PrefixApi() string {
+	return defaultPrefixApi
 }
 
 type Context struct {
@@ -41,13 +71,23 @@ type Context struct {
 	Target *Target
 }
 
+type Profile struct {
+	Owner    string
+	Contribs bool
+	Followed bool
+	Starred  bool
+}
+
 type Target struct {
-	Owner string
-	Name  string
+	Owner  string
+	Name   string
+	Branch string
+	Ref    string
 }
 
 type Options struct {
 	Runner               string
+	Accounts             []string
 	Page                 int
 	PerPage              int
 	Target               *Target

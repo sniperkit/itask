@@ -1,0 +1,4 @@
+# /repos/:owner/:repo/languages
+# /repos/:owner/:repo/teams
+# /repos/:owner/:repo/tags
+# /repos/:owner/:repo/stargazers

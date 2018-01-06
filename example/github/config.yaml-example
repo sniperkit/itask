@@ -1,0 +1,14 @@
+app:
+  debug: false
+pipeline:
+  length: 10000
+  interval: 0
+  workers: 18
+queue:
+  length: 10000
+worker:
+  count: 20
+  interval: 0
+service:
+  github:
+    token: your_personal_token

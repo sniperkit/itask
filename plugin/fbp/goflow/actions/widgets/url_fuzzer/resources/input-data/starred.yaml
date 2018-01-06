@@ -1,0 +1,10 @@
+workers:
+	- name: github-star
+	  order: 1
+	  base: https://api.github.com/ 
+	  queue:
+		url: github.com/{/owner}{/repo}
+		# %srepos/%s/stats/contributors
+		headers:
+		- application/vnd.github.v3.star+json
+		method: POST

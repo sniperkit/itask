@@ -2,8 +2,10 @@ package xtask
 
 import (
 	"container/list"
+	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"reflect"
 	"sync"
 	"time"
@@ -17,38 +19,180 @@ type TaskParameter interface{}
 // TaskHanlder
 type TaskHanlder interface{}
 
-// ContinueWithHandler
-type ContinueWithHandler func(TaskResult)
-
-// TaskResult
-type TaskResult struct {
-	Result interface{}
-	Error  error
-}
-
 // Task represents a task to run. It can be scheduled to run later or right away.
 type Task struct {
 	id           int
 	name         string
 	fn           interface{}
 	args         []interface{}
-	hash         uuid.UUID
-	nextRun      time.Time
-	interval     time.Duration
-	repeat       bool
-	wait         *sync.WaitGroup
 	handler      reflect.Value
 	params       []reflect.Value
+	hash         uuid.UUID
+	repeat       bool
+	wait         *sync.WaitGroup
 	once         sync.Once
 	continueWith *list.List
 	delay        time.Duration
-
-	Result      TaskResult
-	isCompleted bool
+	nextRun      time.Time
+	interval     time.Duration
+	isCompleted  bool
+	Result       TaskResult
 }
 
-// Run
+// ContinueWith
+func (task *Task) ContinueWith(handler ContinueWithHandler) *Task {
+	task.continueWith.PushFront(handler)
+	return task
+}
+
+// ContinueWithFunc
+func (task *Task) ContinueWithFunc(name string, fn interface{}, args ...interface{}) *Task {
+	handler := NewTask(name, fn, args...)
+	task.continueWith.PushFront(handler)
+	return task
+}
+
+// ContinueWithTask
+func (task *Task) ContinueWithTask(handler ContinueWithHandler) *Task {
+	task.continueWith.PushFront(handler)
+	return task
+}
+
+// Delay
+func (task *Task) Delay(delay time.Duration) *Task {
+	task.delay = delay
+	return task
+}
+
+// Wait
+func (task *Task) Wait() {
+	task.wait.Wait()
+}
+
+func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
+	task.once.Do(func() {
+
+		// Use context.Context to stop running goroutines
+		// ctx, cancel := context.WithCancel(context.Background())
+		// defer cancel()
+
+		task.wait.Add(1)
+		if task.delay.Nanoseconds() > 0 {
+			time.Sleep(task.delay)
+		}
+
+		defer func() {
+			task.isCompleted = true
+			// tlist.completed += 1
+			if task.continueWith != nil {
+				result := task.Result
+				for element := task.continueWith.Back(); element != nil; element = element.Prev() {
+					if tt, ok := element.Value.(ContinueWithHandler); ok {
+						tt(result)
+					}
+
+				}
+			}
+			// tlist.worker.complete <- task
+			// tlist.LogTaskFinished(tlist.worker, task)
+			task.wait.Done()
+			tlist.counters.Increment("completed", 1)
+		}()
+
+		fn := reflect.ValueOf(task.fn)
+		fnType := fn.Type()
+		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(task.args) {
+			// log.Panic("Expected a function")
+			log.Print("Expected a function")
+			os.Exit(1)
+		}
+
+		var args []reflect.Value
+		for _, arg := range task.args {
+			args = append(args, reflect.ValueOf(arg))
+		}
+
+		res := fn.Call(args)
+		for _, val := range res {
+			log.Println("Response:", val.Interface())
+		}
+		task.Result = TaskResult{
+			Result: res,
+		}
+
+		if task.repeat {
+			tlist.EnqueueFuncEvery(task.name, task.interval, task.fn, task.args)
+			// tlist.EnqueueTaskEvery(task)
+		}
+
+	})
+	return task
+}
+
 func (task *Task) Run() *Task {
+	task.once.Do(func() {
+		task.wait.Add(1)
+		if task.delay.Nanoseconds() > 0 {
+			time.Sleep(task.delay)
+		}
+
+		// go func() {
+		defer func() {
+			task.isCompleted = true
+			if task.continueWith != nil {
+				result := task.Result
+				for element := task.continueWith.Back(); element != nil; element = element.Prev() {
+					if tt, ok := element.Value.(ContinueWithHandler); ok {
+						tt(result)
+					}
+
+				}
+			}
+			task.wait.Done()
+			tlist.counters.Increment("completed", 1)
+		}()
+
+		fn := reflect.ValueOf(task.fn)
+		fnType := fn.Type()
+		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(task.args) {
+			// log.Panic("Expected a function")
+			log.Print("Expected a function")
+			os.Exit(1)
+		}
+
+		var args []reflect.Value
+		for _, arg := range task.args {
+			args = append(args, reflect.ValueOf(arg))
+		}
+
+		res := fn.Call(args)
+		for _, val := range res {
+			log.Println("Response:", val.Interface())
+		}
+		task.Result = TaskResult{
+			Result: res,
+		}
+
+		// }()
+	})
+	return task
+}
+
+func (task *Task) GetUUID() string {
+	return task.hash.String()
+}
+
+func (task *Task) SetUUID(input string) *Task {
+	var err error
+	task.hash, err = uuid.FromString(input) // "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+	if err != nil {
+		log.Printf("error while trying to parse uuuid fron string input: %s", err)
+	}
+	return task
+}
+
+// RunAsync
+func (task *Task) RunAsync() *Task {
 	task.once.Do(func() {
 		task.wait.Add(1)
 		if task.delay.Nanoseconds() > 0 {
@@ -69,9 +213,26 @@ func (task *Task) Run() *Task {
 				}
 				task.wait.Done()
 			}()
-			values := task.handler.Call(task.params)
+
+			fn := reflect.ValueOf(task.fn)
+			fnType := fn.Type()
+			if fnType.Kind() != reflect.Func && fnType.NumIn() != len(task.args) {
+				// log.Panic("Expected a function")
+				log.Print("Expected a function")
+				os.Exit(1)
+			}
+
+			var args []reflect.Value
+			for _, arg := range task.args {
+				args = append(args, reflect.ValueOf(arg))
+			}
+
+			res := fn.Call(args)
+			for _, val := range res {
+				fmt.Println("Response:", val.Interface())
+			}
 			task.Result = TaskResult{
-				Result: values,
+				Result: res,
 			}
 
 		}()
@@ -79,49 +240,24 @@ func (task *Task) Run() *Task {
 	return task
 }
 
-// Wait
-func (task *Task) Wait() {
-	task.wait.Wait()
-}
-
-// ContinueWith
-func (task *Task) ContinueWith(handler ContinueWithHandler) *Task {
-	task.continueWith.PushFront(handler)
-	return task
-}
-
-// Delay
-func (task *Task) Delay(delay time.Duration) *Task {
-	task.delay = delay
-	return task
-}
-
 // NewTask
-func NewTask(handler TaskHanlder, params ...TaskParameter) *Task {
+func NewTask(name string, fn interface{}, args ...interface{}) *Task {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	handlerValue := reflect.ValueOf(handler)
-	if handlerValue.Kind() == reflect.Func {
-		task := Task{
-			id:           random.Intn(10000),
-			hash:         uuid.NewV4(),
-			wait:         &sync.WaitGroup{},
-			handler:      handlerValue,
-			repeat:       false,
-			continueWith: list.New(),
-			delay:        0 * time.Second,
-			params:       make([]reflect.Value, 0),
-			isCompleted:  false,
-		}
-		if paramNum := len(params); paramNum > 0 {
-			task.params = make([]reflect.Value, paramNum)
-			for index, v := range params {
-				task.params[index] = reflect.ValueOf(v)
-				log.Println("param: key=", index, ", value=", reflect.ValueOf(v))
-			}
-		}
-		return &task
+	task := Task{
+		id:           random.Intn(10000),
+		hash:         uuid.NewV4(),
+		wait:         &sync.WaitGroup{},
+		fn:           fn,
+		args:         args,
+		repeat:       false,
+		continueWith: list.New(),
+		delay:        0 * time.Second,
+		isCompleted:  false,
+		name:         name,
+		nextRun:      time.Now(),
 	}
-	panic("handler not func")
+
+	return &task
 }
 
 // WaitAll
@@ -138,89 +274,9 @@ func WaitAll(tasks ...*Task) {
 }
 
 // StartNew
-func StartNew(handler TaskHanlder, params ...TaskParameter) *Task {
-	task := NewTask(handler, params)
-	task.Run()
+func StartNew(name string, fn interface{}, args ...interface{}) *Task {
+	// task := NewTask(handler, params)
+	task := NewTask(name, fn, args...)
+	task.RunAsync()
 	return task
 }
-
-// enqueue is an internal function used to asynchronously push a task onto the
-// queue and log the state to the terminal.
-func enqueue(task *Task) {
-	AppConfig.ScheduledTasks.Push(task)
-	LogTaskScheduled(task)
-}
-
-// Enqueue schedules a task to run as soon as the next worker is available.
-func Enqueue(handler TaskHanlder, params ...TaskParameter) *Task {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now()
-	go enqueue(task)
-	return task
-}
-
-// EnqueueIn schedules a task to run a certain amount of time from the current time. This allows us to schedule tasks to run in intervals.
-func EnqueueIn(period time.Duration, handler TaskHanlder, params ...TaskParameter) *Task {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now().Add(period)
-	go enqueue(task)
-	return task
-}
-
-// EnqueueAt schedules a task to run at a certain time in the future.
-func EnqueueAt(period time.Time, handler TaskHanlder, params ...TaskParameter) *Task {
-	task := NewTask(handler, params)
-	task.nextRun = period
-	go enqueue(task)
-	return task
-}
-
-// EnqueueEvery schedules a task to run and reschedule itself on a regular interval. It works like EnqueueIn but repeats
-func EnqueueEvery(period time.Duration, handler TaskHanlder, params ...TaskParameter) *Task {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now().Add(period)
-	task.interval = period
-	task.repeat = true
-	go enqueue(task)
-	return task
-}
-
-/*
-// Enqueue schedules a task to run as soon as the next worker is available.
-// func Enqueue(fn interface{}, args ...interface{}) uuid.UUID {
-func Enqueue(handler TaskHanlder, params ...TaskParameter) uuid.UUID {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now()
-	go enqueue(task)
-	return task.hash
-}
-
-// EnqueueIn schedules a task to run a certain amount of time from the current time. This allows us to schedule tasks to run in intervals.
-// func EnqueueIn(period time.Duration, fn interface{}, args ...interface{}) uuid.UUID {
-func EnqueueIn(period time.Duration, handler TaskHanlder, params ...TaskParameter) uuid.UUID {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now().Add(period)
-	go enqueue(task)
-	return task.hash
-}
-
-// EnqueueAt schedules a task to run at a certain time in the future.
-// func EnqueueAt(period time.Time, fn interface{}, args ...interface{}) uuid.UUID {
-func EnqueueAt(period time.Time, handler TaskHanlder, params ...TaskParameter) uuid.UUID {
-	task := NewTask(handler, params)
-	task.nextRun = period
-	go enqueue(task)
-	return task.hash
-}
-
-// EnqueueEvery schedules a task to run and reschedule itself on a regular interval. It works like EnqueueIn but repeats
-// func EnqueueEvery(period time.Duration, fn interface{}, args ...interface{}) uuid.UUID {
-func EnqueueEvery(period time.Duration, handler TaskHanlder, params ...TaskParameter) uuid.UUID {
-	task := NewTask(handler, params)
-	task.nextRun = time.Now().Add(period)
-	task.interval = period
-	task.repeat = true
-	go enqueue(task)
-	return task.hash
-}
-*/
