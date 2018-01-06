@@ -1,17 +1,17 @@
 package xtask
 
 import (
-	// "container/list"
 	"log"
 	"math/rand"
 	"reflect"
 	"sync"
 	"time"
+	// "container/list"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"
-	"github.com/sniperkit/xtask/plugin/tachymeter"
+	"github.com/sniperkit/xtask/plugin/stats/tachymeter"
 )
 
 func NewTaskGroup() *TaskGroup {
@@ -26,6 +26,12 @@ func NewTaskGroup() *TaskGroup {
 		lock:     &sync.RWMutex{},
 		counters: counter.NewOc(),
 	}
+}
+
+// TaskGroupResult
+type TaskGroupResult struct {
+	Results []TaskResult
+	Metrics interface{}
 }
 
 // TaskGroup is a threadsafe container for tasks to be processed
@@ -46,6 +52,20 @@ type TaskGroup struct {
 	completed  int
 	rate       *rate.RateLimiter
 	tachymeter *tachymeter.Tachymeter
+	wallTime   time.Time
+	startTime  time.Time //
+	endTime    time.Time
+	results    *TaskGroupResult
+}
+
+func (tlist *TaskGroup) Aggregate() *TaskGroup {
+	tlist.lock.Lock()
+	defer tlist.lock.Unlock()
+
+	if tlist.results == nil {
+		tlist.results = &TaskGroupResult{}
+	}
+	return tlist
 }
 
 // RunPipeline
@@ -53,6 +73,10 @@ func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Du
 	tlist.lock.Lock()
 	defer tlist.lock.Unlock()
 	// defer tlist.Close()
+
+	if tlist.tachymeter != nil {
+		tlist.wallTime = time.Now() // Start wall time for all Goroutines to get accurate metrics with the tachymeter.
+	}
 
 	log.Println("initializing pipeline runner... concurrency=", concurrency, ", queue=", queue, "interval: ", interval)
 
@@ -129,10 +153,19 @@ func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Du
 
 	log.Println("exiting pipeline runner...")
 	<-stop
-	tlist.rate.Close()
 
-	tlist.list = nil
-	tlist.rate = nil
+	if tlist.tachymeter != nil {
+		tlist.tachymeter.SetWallTime(time.Since(tlist.wallTime))
+		tlist.results.Metrics = tlist.tachymeter.Calc()
+		log.Println(tlist.tachymeter.Calc().String())
+	}
+
+	tlist.rate.Close()
+	/*
+		// what if we want to add a scheduler and create a cron tasker
+		tlist.rate = nil
+		tlist.list = nil
+	*/
 
 	if workers != nil {
 		close(workers)
@@ -145,22 +178,23 @@ func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Du
 	}
 
 	/*
-		// update the statistics with the results
-		allStatisticsHaveBeenUpdated := make(chan bool)
+		allStatsUpdated := make(chan bool) // update the stats with the task's results
 		go func() {
 			for {
 				select {
 				case <-tlist.pipeline.Done:
-					allStatisticsHaveBeenUpdated <- true
+					allStatsUpdated <- true
 					return
-
 				case result := <-results:
-					updateStatistics(result)
+					updateStats(result)
 				}
 			}
 		}()
+		<-allStatsUpdated
 
-		<-allStatisticsHaveBeenUpdated
+		if allStatsUpdated != nil {
+			close(allStatsUpdated)
+		}
 	*/
 
 }
@@ -177,7 +211,9 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 			tlist.rate.Wait()
 		}
 
+		start := time.Now()
 		tlist.counters.Increment("started", 1)
+
 		// Use context.Context to stop running goroutines
 		// ctx, cancel := context.WithCancel(context.Background())
 		// defer cancel()
@@ -195,7 +231,6 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 		defer func() {
 			t.isCompleted = true
 			tlist.counters.Increment("completed", 1)
-			// if t.continueWith != nil {
 			if t.continueWith.Len() > 0 {
 				tlist.counters.Increment("chained", 1)
 				result := t.Result
@@ -206,6 +241,8 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 				}
 			}
 			log.Println("done task.name: ", t.name, "workerID: ", workerID) //, "counters=", tlist.counters.Snapshot())
+
+			tlist.tachymeter.AddTime(time.Since(start))
 			t.wait.Done()
 		}()
 
@@ -228,6 +265,11 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 
 		t.Result = TaskResult{
 			Result: res,
+			Error:  nil,
+		}
+
+		if tlist.results != nil {
+			tlist.results.Results = append(tlist.results.Results, t.Result)
 		}
 
 		if t.repeat {

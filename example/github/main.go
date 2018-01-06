@@ -81,8 +81,8 @@ func main() {
 		pp.Println("readmeList:", readmeList)
 	}
 
-	starredList.Limiter(80, time.Minute).Monitor().RunPipeline(10, config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
-	preloadList.Limiter(250, time.Minute).Monitor().RunPipeline(10, 5*config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
+	starredList.Tachymeter(50, true, 10).Limiter(80, time.Minute).Monitor().RunPipeline(10, config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
+	preloadList.Tachymeter(50, true, 10).Limiter(250, time.Minute).Monitor().RunPipeline(10, 5*config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
 	showStats()
 
 }

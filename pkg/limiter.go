@@ -8,6 +8,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/rate"
 	"github.com/sniperkit/xtask/plugin/rate/cpu"
+	// "github.com/sniperkit/xtask/plugin/rate/max"
 	// "github.com/sniperkit/xtask/plugin/rate/limiter"
 )
 
