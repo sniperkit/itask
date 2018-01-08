@@ -1,14 +1,19 @@
 app:
   debug: false
 pipeline:
-  length: 10000
-  interval: 0
-  workers: 18
-queue:
-  length: 10000
-worker:
-  count: 20
-  interval: 0
+  interval: 350
+  workers: 
+    count: 20
+    interval: 350
 service:
   github:
-    token: your_personal_token
+    per_page: 100
+    offset: 1
+    max_page: -1
+    runner: your_account
+    accounts: 
+    - user_account_1
+    - user_account_2
+    tokens:
+      - key: your_token_1
+      - key: your_token_2
