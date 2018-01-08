@@ -1,12 +1,13 @@
 package main
 
 import (
-	"log"
-
-	"github.com/sniperkit/go-tasker"
+	"github.com/sniperkit/xlogger/pkg"
+	"github.com/sniperkit/xtask/pkg"
 )
 
-func print_task(msg string) tasker.Task {
+var log xlogger.Logger
+
+func print_task(msg string) xtask.Task {
 	return func() error {
 		log.Println(msg)
 		return nil
@@ -14,7 +15,7 @@ func print_task(msg string) tasker.Task {
 }
 
 func main() {
-	tr, err := tasker.NewTasker(2)
+	tr, err := xtask.NewTasker(2)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/sniperkit/xtask/pkg"
 	"github.com/sniperkit/xtask/util/runtime"
 )

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -26,13 +25,13 @@ var (
 )
 
 func visisted(taskName string) bool {
-	return gh.CacheSlugExists(taskName)
+	return ghClient.CacheSlugExists(taskName)
 }
 
 var getStars = func(page int) {
 	t := time.Now()
 	counters.Increment("getStars.task.queued", 1)
-	stars, _, err := gh.Get("getStars", &github.Options{
+	stars, _, err := ghClient.Get("getStars", &github.Options{
 		Page:    page,
 		PerPage: config.Service.Github.PerPage,
 		Runner:  config.Service.Github.Runner,
@@ -72,7 +71,7 @@ var getStars = func(page int) {
 var getRepo = func(owner, name string) {
 	t := time.Now()
 	counters.Increment("getRepo.task.queued", 1)
-	repo, _, err := gh.Get("getRepo", &github.Options{
+	repo, _, err := ghClient.Get("getRepo", &github.Options{
 		Runner: config.Service.Github.Runner,
 		Target: &github.Target{
 			Owner: owner,
@@ -103,7 +102,7 @@ var getRepo = func(owner, name string) {
 var getLatestSHA = func(owner, name, branch string) {
 	t := time.Now()
 	counters.Increment("getLatestSHA.task.queued", 1)
-	sha, _, err := gh.Get("getLatestSHA", &github.Options{
+	sha, _, err := ghClient.Get("getLatestSHA", &github.Options{
 		Runner: config.Service.Github.Runner,
 		Target: &github.Target{
 			Owner:  owner,
@@ -134,7 +133,7 @@ var getLatestSHA = func(owner, name, branch string) {
 var getReadme = func(owner, name string) {
 	t := time.Now()
 	counters.Increment("getReadme.task.queued", 1)
-	_, _, err := gh.Get("getReadme", &github.Options{
+	_, _, err := ghClient.Get("getReadme", &github.Options{
 		Runner: config.Service.Github.Runner,
 		Target: &github.Target{
 			Owner: owner,
@@ -153,7 +152,7 @@ var getReadme = func(owner, name string) {
 var getTopics = func(owner, name string) {
 	t := time.Now()
 	counters.Increment("getTopics.task.queued", 1)
-	_, _, err := gh.Get("getTopics", &github.Options{
+	_, _, err := ghClient.Get("getTopics", &github.Options{
 		Runner: config.Service.Github.Runner,
 		Target: &github.Target{
 			Owner: owner,
@@ -172,7 +171,7 @@ var getTopics = func(owner, name string) {
 var getTree = func(owner, name, ref string) {
 	t := time.Now()
 	counters.Increment("getTree.task.queued", 1)
-	_, _, err := gh.Get("getTree", &github.Options{
+	_, _, err := ghClient.Get("getTree", &github.Options{
 		Runner: config.Service.Github.Runner,
 		Target: &github.Target{
 			Owner: owner,

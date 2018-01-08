@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -36,7 +35,7 @@ func getStarsFunc(page int) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getStars.task.queued", 1)
-		stars, _, err := gh.Get("getStars", &github.Options{
+		stars, _, err := ghClient.Get("getStars", &github.Options{
 			Page:    page,
 			PerPage: config.Service.Github.PerPage,
 			Runner:  config.Service.Github.Runner,
@@ -88,7 +87,7 @@ func getLatestSHAFunc(owner, name, branch string) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getLatestSHA.task.queued", 1)
-		sha, _, err := gh.Get("getLatestSHA", &github.Options{
+		sha, _, err := ghClient.Get("getLatestSHA", &github.Options{
 			Runner: config.Service.Github.Runner,
 			Target: &github.Target{
 				Owner:  owner,
@@ -126,7 +125,7 @@ func getRepoFunc(owner, name string) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getRepo.task.queued", 1)
-		repo, _, err := gh.Get("getRepo", &github.Options{
+		repo, _, err := ghClient.Get("getRepo", &github.Options{
 			Runner: config.Service.Github.Runner,
 			Target: &github.Target{
 				Owner: owner,
@@ -160,7 +159,7 @@ func getReadmeFunc(owner, name string) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getReadme.task.queued", 1)
-		_, _, err := gh.Get("getReadme", &github.Options{
+		_, _, err := ghClient.Get("getReadme", &github.Options{
 			Runner: config.Service.Github.Runner,
 			Target: &github.Target{
 				Owner: owner,
@@ -183,7 +182,7 @@ func getTopicsFunc(owner, name string) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getTopics.task.queued", 1)
-		_, _, err := gh.Get("getTopics", &github.Options{
+		_, _, err := ghClient.Get("getTopics", &github.Options{
 			Runner: config.Service.Github.Runner,
 			Target: &github.Target{
 				Owner: owner,
@@ -205,7 +204,7 @@ func getTreeFunc(owner, name, ref string) xtask.Tsk {
 	return func() error {
 		t := time.Now()
 		counters.Increment("getTree.task.queued", 1)
-		_, _, err := gh.Get("getTree", &github.Options{
+		_, _, err := ghClient.Get("getTree", &github.Options{
 			Runner: config.Service.Github.Runner,
 			Target: &github.Target{
 				Owner: owner,
