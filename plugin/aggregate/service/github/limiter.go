@@ -13,7 +13,6 @@ import (
 	"github.com/sniperkit/xtask/util/runtime"
 
 	"github.com/google/go-github/github"
-
 	"github.com/pkg/errors"
 )
 
@@ -110,24 +109,44 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 			ok bool
 		)
 
-		if v := hdrs["Retry-After"]; len(v) > 0 {
-			// g.mu.RLock()
-			// defer g.mu.RUnlock()
+	changeClient:
+		{
+			log.Println("error:", err.Error(), "err.(*github.RateLimitError)... token isLimited... changing the client, previous.token=", g.ctoken, "debug", runtime.WhereAmI())
+			g.mu.Lock()
+			ctk := g.getTokenKey(g.ctoken)
+			ntk := ctk + 1
+			if ntk >= len(g.ctokens) {
+				ntk = 0
+			}
+			nextToken := g.ctokens[ntk].Key
+			g.mu.Unlock()
+			log.Println("change Client... ctoken=", g.ctoken, "next=", nextToken)
+			g.getClient(nextToken)
+			// g.client = ghClient
+			log.Println("CLIENT with new Key: token.new", nextToken, "previous.token", g.ctoken, "nextTokenKey=", ntk, "limited?", g.isLimited())
+			return errors.New("New client connection required.")
+		}
+		//randomSleep:
+		//	{
+		//		time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
+		//		return errors.New("randomw sleep event triggered.")
+		//	}
+		// retryAfter: {}
+		// Wait: {}
 
+		if statusCode == 401 {
+			goto changeClient
+		}
+
+		if v := hdrs["Retry-After"]; len(v) > 0 {
 			// According to GitHub support, the "Retry-After" header value will be
 			// an integer which represents the number of seconds that one should
 			// wait before resuming making requests.
 			retryAfterSeconds, _ := strconv.ParseInt(v[0], 10, 64) // Error handling is noop.
 			retryAfter := time.Duration(retryAfterSeconds) * time.Second
 			log.Println("error:", err.Error(), "Retry-After=", v, "retryAfterSeconds: ", retryAfterSeconds, "retryAfter=", retryAfter.Seconds(), "debug", runtime.WhereAmI())
-
 			time.Sleep(retryAfter)
-			// g.rateLimiter().Wait()
-			// time.Sleep(time.Duration(random(1000, 1200)) * time.Millisecond)
-			return nil
-
-		} else {
-			log.Println("Retry-After not found")
+			return errors.New("API abuse detected...")
 		}
 
 		// Get the underlying error, if this is a Wrapped error by the github.com/pkg/errors package.
@@ -137,39 +156,18 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 		if e, ok = err.(*github.AbuseRateLimitError); ok {
 			log.Println("error:", err.Error(), "e:", e, "err.(*github.AbuseRateLimitError) have triggered an abuse detection mechanism.", underlyingErr, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
-			// goto search
+			return errors.New("API abuse detected...")
 		}
 
 		switch underlyingErr.(type) {
 		case *github.RateLimitError:
-			log.Println("error:", err.Error(), "err.(*github.RateLimitError)... token isLimited... changing the client, previous.token=", g.ctoken, "debug", runtime.WhereAmI())
-			ctk := g.getTokenKey(g.ctoken)
-			ntk := ctk + 1
-			if ntk >= len(g.ctokens) {
-				ntk = 0
-			}
-
-			nextToken := g.ctokens[ntk].Key
-			log.Println("change Client... ctoken=", g.ctoken, "next=", nextToken)
-
-			//go func() {
-			//	wg.Add(1)
-			//	defer wg.Done()
-
-			// ghClient :=
-			g.getClient(nextToken)
-			// g.client = ghClient
-			log.Println("CLIENT with new Key: token.new", nextToken, "previous.token", g.ctoken, "nextTokenKey=", ntk, "limited?", g.isLimited())
-			//}()
-			// log.Fatal("RateLimitError: ", underlyingErr)
-			return nil
+			goto changeClient
 
 		case *github.AbuseRateLimitError:
 			var e *github.AbuseRateLimitError
 			log.Println("error:", err.Error(), "e:", e, "*github.AbuseRateLimitError.", underlyingErr, "*e.RetryAfter=", *e.RetryAfter, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
-			// log.Fatal("AbuseRateLimitError: ", underlyingErr)
-			return nil
+			return errors.New("API abuse detected...")
 
 		default:
 			if strings.Contains(err.Error(), "timeout") ||
@@ -177,16 +175,14 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 				strings.Contains(err.Error(), "try again") {
 				time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
 				log.Println("error:", err.Error(), "underlyingErr.(type).default", underlyingErr, "debug", runtime.WhereAmI())
-				return nil
+				// return errors.New("Temporary error detected...")
 			}
-
 			return err
 		}
 
 	} else {
 		g.counters.Increment("limit.handler.none", 1)
-
-		log.Println("statusCode:", statusCode, "current.token=", g.ctoken, "rate.remaining=", rate.Remaining) //, "counters", g.counters.Snapshot())
+		// log.Println("statusCode:", statusCode, "current.token=", g.ctoken, "rate.remaining=", rate.Remaining) //, "counters", g.counters.Snapshot())
 	}
 	return nil
 }

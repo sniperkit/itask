@@ -12,7 +12,7 @@ type stringStack struct {
 }
 
 // push adds an element onto the top of the stack.
-func (s *stringStack) Push(e string) {
+func (s *stringStack) push(e string) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -21,7 +21,7 @@ func (s *stringStack) Push(e string) {
 }
 
 // pop removes and returns the element on top of the stack. It returns an error is no element can be removed.
-func (s *stringStack) Pop() (string, error) {
+func (s *stringStack) pop() (string, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -35,6 +35,6 @@ func (s *stringStack) Pop() (string, error) {
 }
 
 // newStringStack returns a new empty stack.
-func NewStringStack() *stringStack {
+func newStringStack() *stringStack {
 	return &stringStack{make([]string, 0), 0, &sync.RWMutex{}}
 }

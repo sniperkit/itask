@@ -23,8 +23,8 @@ func NewSearchableQueue() *SearchableQueue {
 
 // ContainsElement (t *list.Element) bool
 func (l *SearchableQueue) ContainsElement(t *list.Element) bool {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
@@ -36,10 +36,10 @@ func (l *SearchableQueue) ContainsElement(t *list.Element) bool {
 	return false
 }
 
-// Push adds a new task into the front of the TaskGroup
+// Push adds a new task into the front of the TaskQueue
 func (l *SearchableQueue) Len() int {
-	l.RLock()
-	defer l.RUnlock()
+	// l.RLock()
+	// defer l.RUnlock()
 
 	return l.Len()
 }
@@ -47,16 +47,16 @@ func (l *SearchableQueue) Len() int {
 // Contains (t *list.Element) bool
 // alias -> ContainsElement
 func (l *SearchableQueue) Contains(t *list.Element) bool {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	return l.ContainsElement(t)
 }
 
 // ContainsValue (v interface{}) bool
 func (l *SearchableQueue) ContainsValue(v interface{}) bool {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
@@ -70,8 +70,8 @@ func (l *SearchableQueue) ContainsValue(v interface{}) bool {
 
 // FindFirst (v interface{}) *list.Element
 func (l *SearchableQueue) FindFirst(v interface{}) *list.Element {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	if l.Len() > 0 {
 		for e := l.Front(); e != nil; e = e.Next() {
@@ -85,8 +85,8 @@ func (l *SearchableQueue) FindFirst(v interface{}) *list.Element {
 
 // FindLast (v interface{}) *list.Element
 func (l *SearchableQueue) FindLast(v interface{}) *list.Element {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	if l.Len() > 0 {
 		for e := l.Back(); e != nil; e = e.Prev() {
@@ -100,8 +100,8 @@ func (l *SearchableQueue) FindLast(v interface{}) *list.Element {
 
 // FindAll (v interface{}) []*list.Element
 func (l *SearchableQueue) FindAll(v interface{}) []*list.Element {
-	l.Lock()
-	defer l.Unlock()
+	// l.Lock()
+	// defer l.Unlock()
 
 	if l.Len() > 0 {
 		elList := []*list.Element{}

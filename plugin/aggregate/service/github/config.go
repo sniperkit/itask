@@ -6,8 +6,6 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/gregjones/httpcache"
 
-	"github.com/sniperkit/cuckoofilter"
-
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"
@@ -24,13 +22,6 @@ var (
 	defaultAbuseDelay   time.Duration = 3 * time.Second
 	defaultRetryAttempt uint64        = 1
 	defaultPrefixApi                  = "https://api.github.com/"
-)
-
-var (
-	cfMax    *uint32
-	cfDone   *cuckoofilter.Filter
-	cf404    *cuckoofilter.Filter
-	counters *counter.Oc
 )
 
 var (

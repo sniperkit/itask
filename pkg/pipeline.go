@@ -7,9 +7,9 @@ type Pipeline struct {
 	// WorkInterval is the time it takes for a worker to sleep before it checks the task queue for more work to do.
 	WorkInterval int
 	// ScheduledTasks is the default queue used to decide what is available for the workers to consume.
-	scheduled TaskGroup
+	scheduled TaskQueue
 	// CancelledTasks is a queue which is checked before a task is executed to see if the task has been cancelled.
-	aborted TaskGroup
+	aborted TaskQueue
 	// NewTasks is a signal channel to express that a new task has been pushed to the ScheduledTasks queue.
 	newTasks chan bool
 	// WorkerPool in a channel to wait for a worker when a job comes in and we send workers back into it when they are done.

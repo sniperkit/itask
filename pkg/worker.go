@@ -13,13 +13,13 @@ import (
 type Worker struct {
 	id       int
 	hash     uuid.UUID
-	tasks    TaskGroup
+	tasks    TaskQueue
 	workers  chan *Worker
 	complete chan *Task
 }
 
 // ProcessTask takes a task and does the work on it.
-func (w *Worker) ProcessTask(t *Task, g *TaskGroup) {
+func (w *Worker) ProcessTask(t *Task, g *TaskQueue) {
 	if g != nil {
 		g.LogTaskStarted(w, t)
 	}
@@ -59,7 +59,7 @@ func (w *Worker) ProcessTask(t *Task, g *TaskGroup) {
 }
 
 // Sleep pauses the worker before its next run
-func (w *Worker) Sleep(g *TaskGroup) {
+func (w *Worker) Sleep(g *TaskQueue) {
 	if g != nil {
 		g.LogWorkerSleeping(w)
 	}

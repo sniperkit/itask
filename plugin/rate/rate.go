@@ -3,7 +3,7 @@ package rate
 import (
 	"container/list"
 	"errors"
-	"log"
+	// "log"
 	"sync"
 	"time"
 )
@@ -42,10 +42,10 @@ func (r *RateLimiter) Wait() {
 	for {
 		ok, remaining := r.Try()
 		if ok {
-			log.Println("RateLimiter().Wait() remaining: ", remaining.Nanoseconds())
+			// log.Println("RateLimiter().Wait() remaining: ", remaining.Nanoseconds())
 			break
 		}
-		log.Println("RateLimiter().Wait().Sleep().remaining=", remaining.Seconds())
+		// log.Println("RateLimiter().Wait().Sleep().remaining=", remaining.Seconds())
 		time.Sleep(remaining)
 	}
 }

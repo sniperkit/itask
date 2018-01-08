@@ -16,6 +16,12 @@ import (
 
 func main() {
 
+	starredTasker, _ = xtask.NewTasker(20)
+	preloadTasker, _ = xtask.NewTasker(20)
+	extraTasker, _ = xtask.NewTasker(20)
+	treeTasker, _ = xtask.NewTasker(20)
+	taskerTest()
+
 	t := time.Now()
 	configor.Load(&config, "config.yaml")
 	if config.App.Debug {
@@ -62,7 +68,7 @@ func main() {
 
 	if config.App.Debug {
 		pp.Println("starList:", starredList)
-		pp.Println("extraList:", readmeList)
+		pp.Println("preloadList:", preloadList)
 	}
 
 	if config.Service.Github.MaxPage < 0 {
@@ -71,18 +77,33 @@ func main() {
 
 	gh.LoadCache(config.Service.Github.MaxPage*config.Service.Github.PerPage*5, gh.PrefixApi(), gh.PrefixApi(), nil) //, []string{"/starred"})
 
-	for i := 1; i <= config.Service.Github.MaxPage; i++ {
+	for i := config.Service.Github.Offset; i <= config.Service.Github.MaxPage; i++ {
 		taskName := fmt.Sprintf("activity-starred-%d", i)
-		starredList.AddTask(xtask.NewTask(taskName, getStars, i)) //.Delay(350 * time.Millisecond)) // .ContinueWith(outputResult))
+
+		err := starredTasker.Add(taskName, nil, getStarsFunc(i))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		starredTasker.Limiter(75, time.Minute).Tachymeter().Run()
+		preloadTasker.Limiter(17, time.Second).Tachymeter().Run()
+		extraTasker.Limiter(17, time.Second).Tachymeter().Run()
+		treeTasker.Limiter(17, time.Second).Tachymeter().Run()
+
+		starredTasker, _ = xtask.NewTasker(20)
+		preloadTasker, _ = xtask.NewTasker(20)
+		extraTasker, _ = xtask.NewTasker(20)
+		treeTasker, _ = xtask.NewTasker(20)
 	}
 
 	if config.App.Debug {
 		pp.Println("starList:", starredList)
-		pp.Println("readmeList:", readmeList)
+		pp.Println("preloadList:", preloadList)
 	}
 
-	starredList.Tachymeter(50, true, 10).Limiter(80, time.Minute).Monitor().RunPipeline(10, config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
-	preloadList.Tachymeter(50, true, 10).Limiter(250, time.Minute).Monitor().RunPipeline(10, 5*config.Service.Github.PerPage*config.Service.Github.MaxPage, workerInterval)
-	showStats()
+	starredTasker.Limiter(75, time.Minute).Tachymeter().Run()
+	preloadTasker.Limiter(17, time.Second).Tachymeter().Run() // 15
+	extraTasker.Limiter(17, time.Second).Tachymeter().Run()
+	treeTasker.Limiter(17, time.Second).Tachymeter().Run()
 
 }

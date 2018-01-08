@@ -63,8 +63,8 @@ func (o *Oc) Delete(key string) {
 }
 
 func (o *Oc) Get(key string) int {
-	o.lock.RLock()
-	defer o.lock.RUnlock()
+	o.lock.Lock()
+	defer o.lock.Unlock()
 
 	if el, exists := o.set[key]; exists {
 		return el.Value.(*element).ct
@@ -74,8 +74,8 @@ func (o *Oc) Get(key string) int {
 }
 
 func (o *Oc) Len() int {
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	// o.lock.Lock()
+	// defer o.lock.Unlock()
 
 	length := len(o.set)
 	return length
@@ -101,12 +101,10 @@ func (o *Oc) Snapshot() map[string]int {
 	stats := make(map[string]int, o.Len())
 	o.SortByKey(ASC)
 	for o.Next() {
-		// o.lock.Lock()
 		if o.cur != nil {
 			key, value := o.KeyValue()
 			stats[key] = value
 		}
-		// o.lock.Unlock()
 	}
 
 	return stats
@@ -118,8 +116,8 @@ func keyValue(o *Oc) (string, int) {
 }
 
 func (o *Oc) KeyValue() (string, int) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	// o.lock.Lock()
+	// defer o.lock.Unlock()
 
 	e := o.cur.Value.(*element)
 
@@ -127,8 +125,8 @@ func (o *Oc) KeyValue() (string, int) {
 }
 
 func (o *Oc) SortByKey(dir order) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	// o.lock.Lock()
+	// defer o.lock.Unlock()
 
 	cursor := o.list.Front()
 	d := int(dir)
@@ -155,8 +153,8 @@ func (o *Oc) SortByKey(dir order) {
 }
 
 func (o *Oc) SortByCt(dir order) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	// o.lock.Lock()
+	// defer o.lock.Unlock()
 
 	cursor := o.list.Front()
 	d := int(dir)
@@ -182,7 +180,6 @@ func (o *Oc) SortByCt(dir order) {
 }
 
 func strcmp(a, b string) int {
-
 	for len(a) > 0 && len(b) > 0 {
 		ra, sizea := utf8.DecodeRuneInString(a)
 		rb, sizeb := utf8.DecodeRuneInString(b)

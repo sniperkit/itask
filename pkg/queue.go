@@ -1,12 +1,12 @@
 package xtask
 
 import (
+	"container/list"
 	"log"
 	"math/rand"
 	"reflect"
 	"sync"
 	"time"
-	// "container/list"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/counter"
@@ -14,35 +14,16 @@ import (
 	"github.com/sniperkit/xtask/plugin/stats/tachymeter"
 )
 
-func NewTaskGroup() *TaskGroup {
-	hash := uuid.NewV4()
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return &TaskGroup{
-		// list:     list.New(),
-		list:     NewSearchableQueue(),
-		id:       random.Intn(10000),
-		hash:     hash,
-		limiter:  NewLimiter(hash.String()),
-		lock:     &sync.RWMutex{},
-		counters: counter.NewOc(),
-	}
-}
-
-// TaskGroupResult
-type TaskGroupResult struct {
-	Results []TaskResult
-	Metrics interface{}
-}
-
-// TaskGroup is a threadsafe container for tasks to be processed
-type TaskGroup struct {
+// TaskQueue is a threadsafe container for tasks to be processed
+type TaskQueue struct {
 	name string
 	id   int
 	hash uuid.UUID
 
-	// list       *list.List
-	list       *SearchableQueue
-	lock       *sync.RWMutex
+	list *list.List
+	lock *sync.RWMutex
+	wg   *sync.WaitGroup
+
 	state      *State
 	pipeline   *Pipeline
 	shared     interface{} // shared context between tasks
@@ -55,134 +36,310 @@ type TaskGroup struct {
 	wallTime   time.Time
 	startTime  time.Time //
 	endTime    time.Time
-	results    *TaskGroupResult
+	results    *TaskQueueResult
+
+	// running bool
+	// signal chan bool
+	// FinishedTasks:  make(chan *Task, 100),
+	stop    chan bool
+	tasks   chan *Task
+	workers chan int
+	runner  *Runner
+
+	// w *worker
+
+	// workers  chan *Worker
+	// complete chan *Task
+
+	// preHandlers  []*Handler // sync execute
+	// handlers     []*Handler // can be sync or parallel
+	// postHandlers []*Handler // sync execute
+	// onRecover    func(*TaskRecoverMsg)
 }
 
-func (tlist *TaskGroup) Aggregate() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-
-	if tlist.results == nil {
-		tlist.results = &TaskGroupResult{}
+func NewTaskQueue() *TaskQueue {
+	hash := uuid.NewV4()
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tq := &TaskQueue{
+		id:       random.Intn(10000),
+		hash:     hash,
+		list:     list.New(),
+		counters: counter.NewOc(),
+		limiter:  NewLimiter(hash.String()),
+		lock:     &sync.RWMutex{},
+		// runner:   NewRunner(0, 0), // default values concurency=5, queue=20
+		// wg:       &sync.WaitGroup{},
+		// stop:     make(chan bool),
+		// tasks:    make(chan *Task),
+		// workers:  make(chan int),
+		// w:        NewWorker(),
+		// signal:   make(chan bool, 1000),
+		// newTasks: make(chan *Task, 1000),
+		// FinishedTasks:  make(chan *Task, 100),
 	}
-	return tlist
+	// tq.runner = NewRunner(0, 0, tq)
+	return tq
 }
 
-// RunPipeline
-func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Duration) {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-	// defer tlist.Close()
+type Runner struct {
+	Queue *TaskQueue
+	// running bool
+	NewTask chan bool
+	// New     chan *Task
+	// FinishedTasks:  make(chan *Task, 100),
+	Stop    chan bool
+	Tasks   chan *Task
+	Workers chan int
+}
 
-	if tlist.tachymeter != nil {
-		tlist.wallTime = time.Now() // Start wall time for all Goroutines to get accurate metrics with the tachymeter.
+func NewRunner(concurrency int, pool int, queue *TaskQueue) *Runner {
+
+	if concurrency <= 0 {
+		concurrency = 5
 	}
 
-	log.Println("initializing pipeline runner... concurrency=", concurrency, ", queue=", queue, "interval: ", interval)
-
-	if tlist.state != nil {
-		go tlist.AsyncMonitor()
+	if pool <= 0 {
+		pool = 20
 	}
 
-	tasks := make(chan *Task, queue)
-	// elems := make(chan *list.Element, queue)
-	// results := make(chan *Task)
+	return &Runner{
+		Queue:   queue,
+		Stop:    make(chan bool),
+		Tasks:   make(chan *Task, pool),
+		Workers: make(chan int, concurrency),
+		NewTask: make(chan bool, pool),
+	}
+}
 
-	workers := make(chan int, concurrency)
-	for workerID := 1; workerID <= concurrency; workerID++ {
-		tlist.counters.Increment("workers", 1)
-		workers <- workerID
+func (r *Runner) Close() {
+	close(r.Stop)
+	close(r.Tasks)
+	close(r.Workers)
+	close(r.NewTask)
+}
+
+// Add
+func (tq *TaskQueue) AddTask(task *Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+
+	tq.counters.Increment("add.task", 1)
+	task.nextRun = time.Now()
+	tq.list.PushFront(task)
+
+	//if tq.runner != nil {
+	//	// tq.runner.Tasks <- task
+	//	tq.runner.NewTask <- true
+	//}
+	//go func() {
+	// log.Println("[NEW] new task: ", task.name)
+	// tq.signal <- true // tq.Pop()
+	// }()
+	return tq
+}
+
+// WaitAll
+func (tq *TaskQueue) WaitAll() {
+	tq.lock.RLock()
+	defer tq.lock.RUnlock()
+
+	for element := tq.list.Front(); element != nil; element = element.Next() {
+		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
+			task.wait.Wait()
+		}
+	}
+	if tq.runner != nil {
+		tq.runner.Close()
+	}
+}
+
+/*
+func (tq *TaskQueue) PerformRequests() {
+	rate := time.Second / 10
+	burstLimit := 100
+	tick := time.NewTicker(rate)
+	defer tick.Stop()
+	throttle := make(chan time.Time, burstLimit)
+	go func() {
+		for t := range tick.C {
+			select {
+			case throttle <- t:
+			default:
+			}
+		}
+	}()
+	i := len(q.Requests)
+	for key, req := range q.Requests {
+		<-throttle
+		go req.Action()
+		tq.lock.Lock()
+		defer tq.lock.Unlock()
+		delete(tq.Requests, key)
+		i = i - 1
+	}
+}
+*/
+
+func (tq *TaskQueue) Pool(concurrency int, workerInterval time.Duration) *TaskQueue {
+	tq.lock.RLock()
+	defer tq.lock.RUnlock()
+
+	if tq.tachymeter != nil {
+		tq.wallTime = time.Now() // Start wall time for all Goroutines to get accurate metrics with the tachymeter.
 	}
 
-	// tlist.list = removeDuplicate(tlist.list)
-	for e := tlist.list.Front(); e != nil; e = e.Next() {
+	log.Println("initializing pipeline runner... concurrency=", concurrency, "workerInterval=", workerInterval)
+	wp := NewWorkerPool(concurrency)
+	for e := tq.list.Front(); e != nil; e = e.Next() {
 		if task, ok := e.Value.(*Task); ok && !task.isCompleted {
 			if task != nil {
-				tlist.counters.Increment("enqueued", 1)
+				tq.counters.Increment("enqueued", 1)
 				log.Println("enqueuing task.name: ", task.name)
-				tasks <- task
+				wp.Submit(tq.ProcessOnce(task))
 			} else {
-				tlist.counters.Increment("skipped", 1)
+				tq.counters.Increment("skipped", 1)
 				log.Println("somwthing is wrong with task.name: ", task.name)
 			}
 		}
 	}
 
-	stop := make(chan bool)
+	wp.Stop()
+
+	if tq.tachymeter != nil {
+		tq.tachymeter.SetWallTime(time.Since(tq.wallTime))
+		tq.results.Metrics = tq.tachymeter.Calc()
+		log.Println(tq.tachymeter.Calc().String())
+	}
+
+	// tq.runner.Close()
+
+	return tq
+}
+
+// RunPipeline
+func (tq *TaskQueue) Pipeline(concurrency int, queue int, workerInterval time.Duration) *TaskQueue {
+	tq.lock.RLock()
+	defer tq.lock.RUnlock()
+
+	if tq.tachymeter != nil {
+		tq.wallTime = time.Now() // Start wall time for all Goroutines to get accurate metrics with the tachymeter.
+	}
+
+	log.Println("initializing pipeline runner... concurrency=", concurrency, ", queue=", queue, "workerInterval=", workerInterval)
+
+	//if tq.state != nil {
+	//	go tq.AsyncMonitor()
+	//}
+
+	runner := NewRunner(concurrency, queue, tq)
+	// tq.runner = runner
+
+	// stop = make(chan bool)
+	// tasks = make(chan *Task, queue)
+	// workers = make(chan int, concurrency)
+
+	// tq.signal = make(chan bool, concurrency)
+	// tq.wg = &sync.WaitGroup{}
+
+	// results := make(chan *Task)
+
+	for workerID := 1; workerID <= concurrency; workerID++ {
+		tq.counters.Increment("workers", 1)
+		runner.Workers <- workerID
+	}
+
+	for e := tq.list.Front(); e != nil; e = e.Next() {
+		if task, ok := e.Value.(*Task); ok && !task.isCompleted {
+			if task != nil {
+				tq.counters.Increment("enqueued", 1)
+				log.Println("enqueuing task.name: ", task.name)
+				runner.Tasks <- task
+			} else {
+				tq.counters.Increment("skipped", 1)
+				log.Println("somwthing is wrong with task.name: ", task.name)
+			}
+		}
+	}
+
 	log.Println("starting pipeline runner...")
 
 	go func() {
 		for {
 			select {
-			case <-stop:
+			case <-runner.Stop:
 				return
-			// case tlist.pipeline.New <- true:
-			case task := <-tasks:
+
+			case <-runner.NewTask:
+				log.Println("received new task...")
+
+			case task := <-runner.Tasks:
 				go func() {
-					workerID := <-workers
+					workerID := <-runner.Workers
+
+					if tq.rate != nil {
+						tq.rate.Wait()
+					}
+
+					time.Sleep(workerInterval)
 					// time.Sleep(time.Duration(random(150, 250)) * time.Millisecond)
 					log.Println("run task.name: ", task.name, "workerID: ", workerID)
-					res := tlist.Process(task, workerID, cap(workers))
+
+					res := runner.Process(task, workerID, cap(tq.workers))
+					// res := tq.Process(task, workerID, cap(tq.workers))
 					if res.Result.Error != nil {
 						log.Fatalln("res err task.name: ", res.Result.Error.Error())
 					}
+
 					log.Println("res task.name: ", res.Result.Result)
-					log.Println("res task.name: ", res.Result.Result)
-					// results <- tlist.Process(task, workerID, cap(workers))
-					workers <- workerID
-					log.Println("[FINISHED] task.name: ", task.name, "workerID: ", workerID, "tlist.Len()", tlist.Len(), "counters=", tlist.counters.Snapshot())
+					log.Println("[FINISHED] task.name: ", task.name, "workerID: ", workerID, "tq.Len()", tq.Len())
+
+					// results <- tq.Process(task, workerID, cap(workers))
+					runner.Workers <- workerID
+
 				}()
-				// results <- executeWork(workerID, cap(workers), targetURL, urls)
 
-			case <-time.After(time.Second * 10):
-				if tlist.counters != nil {
-					log.Println("counters=", tlist.counters.Snapshot())
-				}
+			//case <-time.After(100 * time.Millisecond):
+			//	w.Sleep()
+			//case <-tq.signal:
+			//	log.Println("[SIGNAL] ********** signal")
+			//	tq.signal <- false
 
-			case <-time.After(time.Second * 1):
+			case <-time.After(time.Millisecond * 500):
 				// log.Println("luc.............")
-				log.Println("[CHECKUP] task.Len(): ", tlist.Len(), "task.completed: ", tlist.counters.Get("completed"))
-				if (len(workers) == cap(workers)) && (tlist.counters.Get("completed") == tlist.Len()) {
+				log.Println("[CHECKUP] task.Len(): ", tq.Len(), "task.completed: ", tq.counters.Get("completed"))
+				// if (len(runner.Workers) == cap(runner.Workers)) && (tq.counters.Get("completed") == tq.Len()) {
+				if (len(runner.Workers) == cap(runner.Workers)) && (tq.counters.Get("completed") == tq.Len()) {
 					log.Println("all done")
-					stop <- true
+					runner.Stop <- true
 					return
 				}
+
+				//default:
+				//	log.Println("[DEFAULT] pipeline runner")
+
 			}
 		}
 	}()
 
 	log.Println("exiting pipeline runner...")
-	<-stop
+	<-runner.Stop
 
-	if tlist.tachymeter != nil {
-		tlist.tachymeter.SetWallTime(time.Since(tlist.wallTime))
-		tlist.results.Metrics = tlist.tachymeter.Calc()
-		log.Println(tlist.tachymeter.Calc().String())
+	// tq.rate.Close()
+
+	if tq.tachymeter != nil {
+		tq.tachymeter.SetWallTime(time.Since(tq.wallTime))
+		tq.results.Metrics = tq.tachymeter.Calc()
+		log.Println(tq.tachymeter.Calc().String())
 	}
 
-	tlist.rate.Close()
-	/*
-		// what if we want to add a scheduler and create a cron tasker
-		tlist.rate = nil
-		tlist.list = nil
-	*/
-
-	if workers != nil {
-		close(workers)
-	}
-	if tasks != nil {
-		close(tasks)
-	}
-	if stop != nil {
-		close(stop)
-	}
+	runner.Close()
 
 	/*
 		allStatsUpdated := make(chan bool) // update the stats with the task's results
 		go func() {
 			for {
 				select {
-				case <-tlist.pipeline.Done:
+				case <-tq.pipeline.Done:
 					allStatsUpdated <- true
 					return
 				case result := <-results:
@@ -196,43 +353,68 @@ func (tlist *TaskGroup) RunPipeline(concurrency int, queue int, interval time.Du
 			close(allStatsUpdated)
 		}
 	*/
-
+	return tq
 }
 
-func (tlist *TaskGroup) Close() {}
+/*
+func (r *Runner) Listen(workerInterval time.Duration, timeout time.Duration) {
+	for {
+		select {
+		case <-tq.signal:
+			if tq.list.Len() > 0 {
+				workerID := <-tq.workers
+				task := tq.Pop()
+				if tq.rate != nil {
+					tq.rate.Wait()
+				}
 
-// Process takes a task and does the work on it.
-func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
+				time.Sleep(workerInterval)
+				// time.Sleep(time.Duration(random(150, 250)) * time.Millisecond)
+				log.Println("run task.name: ", task.name, "workerID: ", workerID)
+
+				res := tq.Process(task, workerID, cap(tq.workers))
+				if res.Result.Error != nil {
+					log.Fatalln("res err task.name: ", res.Result.Error.Error())
+				}
+
+				log.Println("res task.name: ", res.Result.Result)
+				log.Println("[FINISHED] task.name: ", task.name, "workerID: ", workerID, "tq.Len()", tq.Len())
+
+				// results <- tq.Process(task, workerID, cap(workers))
+				tq.workers <- workerID
+			}
+			//case <-time.After(100 * time.Millisecond):
+			//	tq.Sleep()
+		}
+	}
+}
+*/
+
+func (tq *TaskQueue) ProcessOnce(t *Task) *Task {
+	// tq.lock.Lock()
+	// defer tq.lock.Unlock()
 
 	t.once.Do(func() {
 		t.wait.Add(1)
-
-		if tlist.rate != nil {
-			tlist.rate.Wait()
-		}
-
-		start := time.Now()
-		tlist.counters.Increment("started", 1)
-
-		// Use context.Context to stop running goroutines
-		// ctx, cancel := context.WithCancel(context.Background())
-		// defer cancel()
 
 		if t.name == "" {
 			t.name = t.hash.String()
 		}
 
 		if t.delay.Nanoseconds() > 0 {
-			tlist.counters.Increment("delayed", 1)
-			log.Println("delay task.name: ", t.name, "delay=", t.delay.Seconds(), " seconds, workerID: ", workerID)
+			tq.counters.Increment("delayed", 1)
+			log.Println("delay task.name: ", t.name, "delay=", t.delay.Seconds(), " seconds")
 			time.Sleep(t.delay)
 		}
 
+		start := time.Now()
+		tq.counters.Increment("started", 1)
+
 		defer func() {
 			t.isCompleted = true
-			tlist.counters.Increment("completed", 1)
+
 			if t.continueWith.Len() > 0 {
-				tlist.counters.Increment("chained", 1)
+				tq.counters.Increment("chained", 1)
 				result := t.Result
 				for element := t.continueWith.Back(); element != nil; element = element.Prev() {
 					if tt, ok := element.Value.(ContinueWithHandler); ok {
@@ -240,16 +422,19 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 					}
 				}
 			}
-			log.Println("done task.name: ", t.name, "workerID: ", workerID) //, "counters=", tlist.counters.Snapshot())
 
-			tlist.tachymeter.AddTime(time.Since(start))
+			log.Println("done task.name (Once): ", t.name) //, "counters=", tq.counters.Snapshot())
 			t.wait.Done()
+			tq.tachymeter.AddTime(t.name, time.Since(start))
+			tq.counters.Increment("completed", 1)
+			// r.Tasks <- t
+
 		}()
 
 		fn := reflect.ValueOf(t.fn)
 		fnType := fn.Type()
 		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(t.args) {
-			tlist.counters.Increment("unexpected", 1)
+			tq.counters.Increment("unexpected", 1)
 			log.Fatal("Expected a function")
 		}
 
@@ -268,14 +453,14 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 			Error:  nil,
 		}
 
-		if tlist.results != nil {
-			tlist.results.Results = append(tlist.results.Results, t.Result)
-		}
+		// if tq.results != nil {
+		//	 tq.results.Results = append(tq.results.Results, t.Result)
+		// }
 
 		if t.repeat {
-			tlist.counters.Increment("repeat.every", 1)
+			tq.counters.Increment("repeat.every", 1)
 			log.Println("repeat task.name: ", t.name, ", interval:", t.interval)
-			tlist.EnqueueFuncEvery(t.name, t.interval, t.fn, t.args)
+			tq.EnqueueFuncEvery(t.name, t.interval, t.fn, t.args)
 		}
 
 	})
@@ -283,27 +468,179 @@ func (tlist *TaskGroup) Process(t *Task, workerID, numberOfWorkers int) *Task {
 	return t
 }
 
-func (tlist *TaskGroup) AddLimiter(limit int, interval time.Duration, key string) string {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-	tlist.counters.Increment("add.limiter", 1)
+// Process takes a task and does the work on it.
+func (r *Runner) Process(t *Task, workerID, numberOfWorkers int) *Task {
+	// tq.lock.Lock()
+	// defer tq.lock.Unlock()
 
-	return tlist.limiter.Add(limit, interval, key)
+	t.once.Do(func() {
+		t.wait.Add(1)
+
+		if t.name == "" {
+			t.name = t.hash.String()
+		}
+
+		if t.delay.Nanoseconds() > 0 {
+			r.Queue.counters.Increment("delayed", 1)
+			log.Println("delay task.name: ", t.name, "delay=", t.delay.Seconds(), " seconds, workerID: ", workerID)
+			time.Sleep(t.delay)
+		}
+
+		start := time.Now()
+		r.Queue.counters.Increment("started", 1)
+
+		defer func() {
+			t.isCompleted = true
+
+			if t.continueWith.Len() > 0 {
+				r.Queue.counters.Increment("chained", 1)
+				result := t.Result
+				for element := t.continueWith.Back(); element != nil; element = element.Prev() {
+					if tt, ok := element.Value.(ContinueWithHandler); ok {
+						tt(result)
+					}
+				}
+			}
+
+			log.Println("done task.name: ", t.name, "workerID: ", workerID) //, "counters=", tq.counters.Snapshot())
+			t.wait.Done()
+			r.Queue.tachymeter.AddTime(t.name, time.Since(start))
+			r.Queue.counters.Increment("completed", 1)
+			r.Tasks <- t
+
+		}()
+
+		fn := reflect.ValueOf(t.fn)
+		fnType := fn.Type()
+		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(t.args) {
+			r.Queue.counters.Increment("unexpected", 1)
+			log.Fatal("Expected a function")
+		}
+
+		var args []reflect.Value
+		for _, arg := range t.args {
+			args = append(args, reflect.ValueOf(arg))
+		}
+
+		res := fn.Call(args)
+		for _, val := range res {
+			log.Println("result for task.name: ", t.name, ", response:", val.Interface())
+		}
+
+		t.Result = TaskResult{
+			Result: res,
+			Error:  nil,
+		}
+
+		// if tq.results != nil {
+		//	 tq.results.Results = append(tq.results.Results, t.Result)
+		// }
+
+		if t.repeat {
+			r.Queue.counters.Increment("repeat.every", 1)
+			log.Println("repeat task.name: ", t.name, ", interval:", t.interval)
+			r.Queue.EnqueueFuncEvery(t.name, t.interval, t.fn, t.args)
+		}
+
+	})
+	log.Println("exit processing for task.name: ", t.name)
+	return t
 }
 
-// Push adds a new task into the front of the TaskGroup
-func (tlist *TaskGroup) Len() int {
-	tlist.lock.RLock()
-	defer tlist.lock.RUnlock()
+func (tq *TaskQueue) Close() {}
 
-	return tlist.list.Len()
+// Process takes a task and does the work on it.
+func (tq *TaskQueue) Process(t *Task, workerID, numberOfWorkers int) *Task {
+	// tq.lock.Lock()
+	// defer tq.lock.Unlock()
+
+	t.once.Do(func() {
+		t.wait.Add(1)
+
+		if t.name == "" {
+			t.name = t.hash.String()
+		}
+
+		if t.delay.Nanoseconds() > 0 {
+			tq.counters.Increment("delayed", 1)
+			log.Println("delay task.name: ", t.name, "delay=", t.delay.Seconds(), " seconds, workerID: ", workerID)
+			time.Sleep(t.delay)
+		}
+
+		start := time.Now()
+		tq.counters.Increment("started", 1)
+
+		defer func() {
+			t.isCompleted = true
+
+			if t.continueWith.Len() > 0 {
+				tq.counters.Increment("chained", 1)
+				result := t.Result
+				for element := t.continueWith.Back(); element != nil; element = element.Prev() {
+					if tt, ok := element.Value.(ContinueWithHandler); ok {
+						tt(result)
+					}
+				}
+			}
+
+			log.Println("done task.name: ", t.name, "workerID: ", workerID) //, "counters=", tq.counters.Snapshot())
+			t.wait.Done()
+			tq.tachymeter.AddTime(t.name, time.Since(start))
+			tq.counters.Increment("completed", 1)
+			tq.runner.Tasks <- t
+
+		}()
+
+		fn := reflect.ValueOf(t.fn)
+		fnType := fn.Type()
+		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(t.args) {
+			tq.counters.Increment("unexpected", 1)
+			log.Fatal("Expected a function")
+		}
+
+		var args []reflect.Value
+		for _, arg := range t.args {
+			args = append(args, reflect.ValueOf(arg))
+		}
+
+		res := fn.Call(args)
+		for _, val := range res {
+			log.Println("result for task.name: ", t.name, ", response:", val.Interface())
+		}
+
+		t.Result = TaskResult{
+			Result: res,
+			Error:  nil,
+		}
+
+		// if tq.results != nil {
+		//	 tq.results.Results = append(tq.results.Results, t.Result)
+		// }
+
+		if t.repeat {
+			tq.counters.Increment("repeat.every", 1)
+			log.Println("repeat task.name: ", t.name, ", interval:", t.interval)
+			tq.EnqueueFuncEvery(t.name, t.interval, t.fn, t.args)
+		}
+
+	})
+	log.Println("exit processing for task.name: ", t.name)
+	return t
 }
 
-func (tlist *TaskGroup) Next() *Task {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+// Push adds a new task into the front of the TaskQueue
+func (tq *TaskQueue) Len() int {
+	tq.lock.RLock()
+	defer tq.lock.RUnlock()
 
-	for element := tlist.list.Front(); element != nil; element = element.Next() {
+	return tq.list.Len()
+}
+
+func (tq *TaskQueue) Next() *Task {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+
+	for element := tq.list.Front(); element != nil; element = element.Next() {
 		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
 			//if time.Since(task.nextRun) > 0 {
 			return task
@@ -314,104 +651,225 @@ func (tlist *TaskGroup) Next() *Task {
 }
 
 // Get checks if a key exists in our dequeued task list
-func (tlist *TaskGroup) FindByUUID(hash uuid.UUID) bool {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) FindByUUID(hash uuid.UUID) bool {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	if _, ok := tlist.registry[hash]; ok {
+	if _, ok := tq.registry[hash]; ok {
 		return true
 	}
 	return false
 }
 
 // Remove deletes the dequeued entry once we are done with it
-func (tlist *TaskGroup) RemoveByUUID(hash uuid.UUID) {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) RemoveByUUID(hash uuid.UUID) {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	delete(tlist.registry, hash)
+	delete(tq.registry, hash)
 }
 
-// Push adds a new task into the front of the TaskGroup
-func (tlist *TaskGroup) Push(task *Task) {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-	tlist.counters.Increment("push", 1)
+// Push adds a new task into the front of the TaskQueue
+func (tq *TaskQueue) Push(task *Task) {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+	tq.counters.Increment("push", 1)
 
-	tlist.list.PushFront(task)
-	// tlist.pipeline.New <- true
+	tq.list.PushFront(task)
+	// tq.pipeline.New <- true
 }
 
-// Pop grabs the last task from the TaskGroup
-func (tlist *TaskGroup) Pop() *Task {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-	tlist.counters.Increment("pop", 1)
+// Pop grabs the last task from the TaskQueue
+func (tq *TaskQueue) Pop() *Task {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+	tq.counters.Increment("pop", 1)
 
-	task := tlist.list.Remove(tlist.list.Back())
+	task := tq.list.Remove(tq.list.Back())
 	return task.(*Task)
 }
 
-// Add
-func (tlist *TaskGroup) AddTask(task *Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-
-	tlist.counters.Increment("add.task", 1)
-	task.nextRun = time.Now()
-	tlist.list.PushFront(task)
-	return tlist
-}
-
 // AddFunc
-func (tlist *TaskGroup) AddFunc(name string, fn interface{}, args ...interface{}) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) AddFunc(name string, fn interface{}, args ...interface{}) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	task := NewTask(name, fn, args...)
 	task.nextRun = time.Now()
-	tlist.list.PushFront(task)
+	tq.list.PushFront(task)
 
-	tlist.counters.Increment("add.func", 1)
-	return tlist
+	tq.counters.Increment("add.func", 1)
+	return tq
 }
 
 // AddRange
-func (tlist *TaskGroup) AddRange(tasks ...*Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-	tlist.counters.Increment("add.range", 1)
+func (tq *TaskQueue) AddRange(tasks ...*Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+	tq.counters.Increment("add.range", 1)
 
 	for _, task := range tasks {
-		tlist.list.PushFront(task)
+		tq.list.PushFront(task)
 	}
-	return tlist
+	return tq
 }
 
 // RunTaskAsync
-func (tlist *TaskGroup) RunTaskAsync() *TaskGroup {
-	for element := tlist.list.Front(); element != nil; element = element.Next() {
+func (tq *TaskQueue) RunTaskAsync() *TaskQueue {
+	for element := tq.list.Front(); element != nil; element = element.Next() {
 		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
 			task.RunAsync()
 		}
 	}
-	return tlist
+	return tq
 }
 
-// WaitAll
-func (tlist *TaskGroup) WaitAll() {
-	for element := tlist.list.Front(); element != nil; element = element.Next() {
-		if task, ok := element.Value.(*Task); ok && !task.isCompleted {
-			task.wait.Wait()
+// enqueue is an internal function used to asynchronously push a task onto the queue and log the state to the terminal.
+func (tq *TaskQueue) enqueue(task *Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+
+	tq.Push(task)
+	return tq
+}
+
+/*
+func (tq *TaskQueue) PreProcess(name string, f interface{}, args ...interface{}) *Task {
+	h := NewFunc(name, f, args...)
+	tq.preHandlers = append(tq.preHandlers, h)
+	return t
+}
+
+func (tq *TaskQueue) Process(name string, f interface{}, args ...interface{}) *Task {
+	h := NewFunc(name, f, args...)
+	tq.handlers = append(tq.handlers, h)
+	return t
+}
+
+func (tq *TaskQueue) PostProcess(name string, f interface{}, args ...interface{}) *Task {
+	h := NewFunc(name, f, args...)
+	tq.postHandlers = append(tq.postHandlers, h)
+	return t
+}
+
+func (tq *TaskQueue) SetRecover(f func(*RecoverMsg)) {
+	tq.onRecover = f
+}
+
+func (tq *TaskQueue) deferFunc(wg *sync.WaitGroup, h *Handler, startTime int64) {
+	if wg != nil {
+		wg.Done()
+	}
+	if r := recover(); r != nil {
+		if tq.onRecover != nil {
+			tq.onRecover(&RecoverMsg{GetFuncName(h), startTime, r})
+		} else {
+			log.Println(GetFuncName(h), r)
 		}
 	}
 }
 
-// enqueue is an internal function used to asynchronously push a task onto the queue and log the state to the terminal.
-func (tlist *TaskGroup) enqueue(task *Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
-
-	tlist.Push(task)
-	return tlist
+// sync execution
+func (tq *TaskQueue) RunChain() {
+	var h Handler
+	defer tq.deferFunc(nil, &h, time.Now().UnixNano())
+	for i := range tq.preHandlers {
+		h = *tq.preHandlers[i]
+		h.Call()
+	}
+	for i := range tq.handlers {
+		h = *tq.handlers[i]
+		h.Call()
+	}
+	for i := range tq.postHandlers {
+		h = *tq.postHandlers[i]
+		h.Call()
+	}
 }
+
+// parallel execute, waiting for all go routine finished
+func (tq *TaskQueue) Parallel() {
+	var h Handler
+	defer tq.deferFunc(nil, &h, time.Now().UnixNano())
+	for i := range tq.preHandlers {
+		h = *tq.preHandlers[i]
+		h.Call()
+	}
+
+	wg := &sync.WaitGroup{}
+	for i := range t.handlers {
+		wg.Add(1)
+		go func(f *Handler) {
+			defer tq.deferFunc(wg, f, time.Now().UnixNano())
+			f.Call()
+		}(t.handlers[i])
+	}
+	wg.Wait()
+
+	for i := range t.postHandlers {
+		h = *t.postHandlers[i]
+		h.Call()
+	}
+}
+
+// parallel execute with timeout
+func (tq *TaskQueue) ParallelWithTimeout(timeout time.Duration) error {
+	var h Handler
+	defer tq.deferFunc(nil, &h, time.Now().UnixNano())
+	for i := range tq.preHandlers {
+		h = *tq.preHandlers[i]
+		h.Call()
+	}
+
+	wg := &sync.WaitGroup{}
+	for i := range tq.handlers {
+		wg.Add(1)
+		go func(f *Handler) {
+			defer tq.deferFunc(wg, f, time.Now().UnixNano())
+			f.Call()
+		}(tq.handlers[i])
+	}
+
+	done := make(chan int)
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done: // all done
+	case <-time.After(timeout): // timeout
+		return errExecuteTimeout
+	}
+
+	for i := range tq.postHandlers {
+		h = *tq.postHandlers[i]
+		h.Call()
+	}
+	return nil
+}
+
+// submit async job
+func (tq *TaskQueue) Async() {
+	// TODO: write manager to schedule job
+	go func() {
+		var h Handler
+		defer tq.deferFunc(nil, &h, time.Now().UnixNano())
+		for i := range tq.preHandlers {
+			h = *tq.preHandlers[i]
+			h.Call()
+		}
+
+		for i := range tq.handlers {
+			go func(f *Handler) {
+				defer tq.deferFunc(nil, f, time.Now().UnixNano())
+				f.Call()
+			}(tq.handlers[i])
+		}
+
+		for i := range tq.postHandlers {
+			h = *t.postHandlers[i]
+			h.Call()
+		}
+	}()
+}
+*/

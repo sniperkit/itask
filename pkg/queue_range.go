@@ -4,56 +4,56 @@ import (
 	"time"
 )
 
-func (tlist *TaskGroup) EnqueueRange(name string, tasks ...*Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) EnqueueRange(name string, tasks ...*Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	for _, task := range tasks {
 		task.nextRun = time.Now()
-		go tlist.enqueue(task)
+		go tq.enqueue(task)
 	}
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) EnqueueRangeEvery(name string, period time.Duration, tasks ...*Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) EnqueueRangeEvery(name string, period time.Duration, tasks ...*Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	for _, task := range tasks {
 		task.nextRun = time.Now().Add(period)
 		task.interval = period
 		task.repeat = true
-		go tlist.enqueue(task)
+		go tq.enqueue(task)
 	}
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) EnqueueRangeIn(name string, period time.Duration, tasks ...*Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) EnqueueRangeIn(name string, period time.Duration, tasks ...*Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	for _, task := range tasks {
 		task.nextRun = time.Now().Add(period)
 		task.interval = period
 		task.repeat = true
-		go tlist.enqueue(task)
+		go tq.enqueue(task)
 	}
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) EnqueueRangeAt(name string, period time.Duration, tasks ...*Task) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) EnqueueRangeAt(name string, period time.Duration, tasks ...*Task) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	for _, task := range tasks {
 		task.nextRun = time.Now().Add(period)
 		task.interval = period
 		task.repeat = true
-		go tlist.enqueue(task)
+		go tq.enqueue(task)
 	}
 
-	return tlist
+	return tq
 }

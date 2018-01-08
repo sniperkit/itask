@@ -28,6 +28,7 @@ type Tachymeter struct {
 	sync.Mutex
 	Size     uint64
 	Times    timeSlice
+	Ranks    timeRank
 	Count    uint64
 	WallTime time.Duration
 	HBuckets int
@@ -44,6 +45,25 @@ func (p timeSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 // Histogram is a map["low-high duration"]count of events that
 // fall within the low-high time duration range.
 type Histogram []map[string]uint64
+
+type ranking struct {
+	label     string
+	startedAt time.Time
+	endedAt   time.Time
+	duration  time.Duration
+	err       bool
+}
+
+// timeRank holds time.Duration values.
+type timeRank []ranking
+
+// Satisfy sort for timeRank.
+func (p timeRank) Len() int           { return len(p) }
+func (p timeRank) Less(i, j int) bool { return int64(p[i].duration) < int64(p[j].duration) } //  p[i].duration.Before(p[j].duration) }
+func (p timeRank) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+// type Rank []map[string]uint64
+// type Events map[string]bool
 
 // Metrics holds the calculated outputs
 // produced from a Tachymeter sample set.
@@ -63,11 +83,52 @@ type Metrics struct {
 		Min        time.Duration // Lowest event duration.
 		Range      time.Duration // Event duration range (Max-Min).
 	}
+
+	Rank struct {
+		Cumulative time.Duration // Cumulative time of all sampled events.
+		HMean      time.Duration // Event duration harmonic mean.
+		Avg        time.Duration // Event duration average.
+		P50        time.Duration // Event duration nth percentiles ..
+		P75        time.Duration
+		P95        time.Duration
+		P99        time.Duration
+		P999       time.Duration
+		Long5p     time.Duration // Average of the longest 5% event durations.
+		Short5p    time.Duration // Average of the shortest 5% event durations.
+		Max        string
+		Min        string
+		Range      time.Duration // Event duration range (Max-Min).
+	}
+	/*
+		Rank struct {
+			P50     []map[time.Duration]string // Event duration nth percentiles ..
+			P75     []map[time.Duration]string
+			P95     []map[time.Duration]string
+			P99     []map[time.Duration]string
+			P999    []map[time.Duration]string
+			Long5p  []map[time.Duration]string
+			Short5p []map[time.Duration]string
+			Max     []map[time.Duration]string
+			Min     []map[time.Duration]string
+		}
+	*/
+
 	Rate struct {
 		// Per-second rate based on event duration avg. via Metrics.Cumulative / Metrics.Samples.
 		// If SetWallTime was called, event duration avg = wall time / Metrics.Count
 		Second float64
 	}
+
+	Abuse struct {
+		Cumulative  time.Duration // Cumulative time of all sampled events.
+		HMean       time.Duration // Event duration harmonic mean.
+		Avg         time.Duration // Event duration average.
+		TriggeredAt time.Time
+		Second      float64
+		Count       int
+	}
+
+	Events              map[string]bool
 	Histogram           *Histogram    // Frequency distribution of event durations in len(Histogram) buckets of HistogramBucketSize.
 	HistogramBucketSize time.Duration // The width of a histogram bucket in time.
 	Samples             int           // Number of events included in the sample set.
@@ -77,6 +138,15 @@ type Metrics struct {
 // New initializes a new Tachymeter.
 func New(c *Config) *Tachymeter {
 	var hSize int
+
+	if c == nil {
+		c = &Config{
+			HBuckets: 10,
+			Size:     50,
+			Safe:     true,
+		}
+	}
+
 	if c.HBuckets != 0 {
 		hSize = c.HBuckets
 	} else {
@@ -84,8 +154,11 @@ func New(c *Config) *Tachymeter {
 	}
 
 	return &Tachymeter{
-		Size:     uint64(c.Size),
-		Times:    make([]time.Duration, c.Size),
+		Size: uint64(c.Size),
+		// Times: make([]time.Duration, c.Size),
+		// Ranks: make([]ranking, c.Size),
+		Ranks: make(timeRank, c.Size),
+		// Ranks:    make(timeRank, 0, c.Size),
 		HBuckets: hSize,
 	}
 }
@@ -102,8 +175,9 @@ func (m *Tachymeter) Reset() {
 }
 
 // AddTime adds a time.Duration to Tachymeter.
-func (m *Tachymeter) AddTime(t time.Duration) {
-	m.Times[(atomic.AddUint64(&m.Count, 1)-1)%m.Size] = t
+func (m *Tachymeter) AddTime(label string, t time.Duration) {
+	//	m.Times[(atomic.AddUint64(&m.Count, 1)-1)%m.Size] = t
+	m.Ranks[(atomic.AddUint64(&m.Count, 1)-1)%m.Size] = ranking{duration: t, label: label}
 }
 
 // SetWallTime optionally sets an elapsed wall time duration.
@@ -140,25 +214,27 @@ p99:		%s
 p999:		%s
 Long 5%%:	%s
 Short 5%%:	%s
-Max:		%s
-Min:		%s
+Max:		%s (%s)
+Min:		%s (%s)
 Range:		%s
 Rate/sec.:	%.2f`,
 		m.Samples,
 		m.Count,
-		m.Time.Cumulative,
-		m.Time.HMean,
-		m.Time.Avg,
-		m.Time.P50,
-		m.Time.P75,
-		m.Time.P95,
-		m.Time.P99,
-		m.Time.P999,
-		m.Time.Long5p,
-		m.Time.Short5p,
-		m.Time.Max,
-		m.Time.Min,
-		m.Time.Range,
+		m.Rank.Cumulative,
+		m.Rank.HMean,
+		m.Rank.Avg,
+		m.Rank.P50,
+		m.Rank.P75,
+		m.Rank.P95,
+		m.Rank.P99,
+		m.Rank.P999,
+		m.Rank.Long5p,
+		m.Rank.Short5p,
+		m.Rank.Max,
+		m.Rank.Max,
+		m.Rank.Min,
+		m.Rank.Min,
+		m.Rank.Range,
 		m.Rate.Second)
 }
 

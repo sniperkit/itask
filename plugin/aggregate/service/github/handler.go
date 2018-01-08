@@ -45,7 +45,6 @@ func (g *Github) getStars(opts *Options) (map[string]interface{}, *github.Respon
 	var response *github.Response
 	get := func() error {
 		var err error
-		// g.rateLimiter().Wait()
 		stars, response, err = g.client.Activity.ListStarred(
 			context.Background(),
 			opts.Runner,
@@ -91,8 +90,6 @@ func (g *Github) getRepo(opts *Options) (map[string]interface{}, *github.Respons
 	var response *github.Response
 	get := func() error {
 		var err error
-
-		// g.rateLimiter().Wait()
 		repo, response, err = g.client.Repositories.Get(context.Background(), opts.Target.Owner, opts.Target.Name)
 		if status := g.limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
 			log.Println("error: ", err.Error(), "debug=", runtime.WhereAmI())
@@ -106,6 +103,11 @@ func (g *Github) getRepo(opts *Options) (map[string]interface{}, *github.Respons
 		return nil, response, err
 	}
 
+	// log.Println("repo=", repo)
+	if repo == nil {
+		return nil, response, errorMarshallingResponse
+	}
+
 	if !structs.IsStruct(repo) {
 		return nil, response, errorMarshallingResponse
 	}
@@ -115,7 +117,7 @@ func (g *Github) getRepo(opts *Options) (map[string]interface{}, *github.Respons
 	m := structs.Map(repo)
 	fm, err = flatten.Flatten(m, "", flatten.DotStyle)
 	if err != nil {
-		log.Println("error: ", err.Error(), "debug=", runtime.WhereAmI())
+		log.Fatalln("error: ", err.Error(), "debug=", runtime.WhereAmI())
 		return nil, response, err
 	}
 	return fm, response, nil
@@ -145,6 +147,10 @@ func (g *Github) getTopics(opts *Options) (map[string]interface{}, *github.Respo
 	if err := g.retryRegistrationFunc(get); err != nil {
 		log.Println("error: ", err, "debug=", runtime.WhereAmI())
 		return nil, response, err
+	}
+
+	if topics == nil {
+		return nil, response, errorMarshallingResponse
 	}
 
 	fm := make(map[string]interface{}, 1)
@@ -182,6 +188,10 @@ func (g *Github) getLatestSHA(opts *Options) (map[string]interface{}, *github.Re
 		return nil, response, err
 	}
 
+	if ref == nil {
+		return nil, response, errorMarshallingResponse
+	}
+
 	fm := make(map[string]interface{}, 1)
 	fm["sha"] = *ref.Object.SHA
 
@@ -211,6 +221,10 @@ func (g *Github) getTree(opts *Options) (map[string]interface{}, *github.Respons
 	if err := g.retryRegistrationFunc(get); err != nil {
 		log.Println("error: ", err, "debug=", runtime.WhereAmI())
 		return nil, response, err
+	}
+
+	if tree == nil {
+		return nil, response, errorMarshallingResponse
 	}
 
 	if !structs.IsStruct(tree) {
@@ -252,6 +266,10 @@ func (g *Github) getReadme(opts *Options) (map[string]interface{}, *github.Respo
 	if err := g.retryRegistrationFunc(get); err != nil {
 		log.Println("error: ", err, "debug=", runtime.WhereAmI())
 		return nil, response, err
+	}
+
+	if readme == nil {
+		return nil, response, errorMarshallingResponse
 	}
 
 	if !structs.IsStruct(readme) {

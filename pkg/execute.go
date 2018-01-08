@@ -6,9 +6,9 @@ import (
 )
 
 // RunTasks() registers tasks in the specified order.
-func (tlist *TaskGroup) Execute(tasks ...*Task) error {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) Execute(tasks ...*Task) error {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
 	if len(tasks) == 0 {
 		log.Println("warning! errNoTasks")

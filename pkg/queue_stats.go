@@ -3,67 +3,68 @@ package xtask
 import (
 	//"log"
 
+	// "github.com/rcrowley/go-metrics"
 	"github.com/sniperkit/xtask/plugin/stats/tachymeter"
 	// "github.com/sniperkit/xtask/plugin/stats/collection"
 )
 
-func (tlist *TaskGroup) Tachymeter(size int, safe bool, hbuckets int) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) Tachymeter(size int, safe bool, hbuckets int) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	if tlist.results == nil {
-		tlist.results = &TaskGroupResult{}
+	if tq.results == nil {
+		tq.results = &TaskQueueResult{}
 	}
 
-	tlist.tachymeter = tachymeter.New(
+	tq.tachymeter = tachymeter.New(
 		&tachymeter.Config{
 			Size:     size,
 			Safe:     safe,
 			HBuckets: hbuckets,
 		})
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) StatsCollection(collectors []string) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) StatsCollection(collectors []string) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }
 
 //
-func (tlist *TaskGroup) iostats() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) iostats() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) netstats() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) netstats() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) procstats() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) procstats() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) httpstats() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) httpstats() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }
 
-func (tlist *TaskGroup) redisStats() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) redisStats() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	return tlist
+	return tq
 }

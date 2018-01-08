@@ -35,27 +35,35 @@ func NewLimiter(name string) *Limiter {
 	}
 }
 
-func (tlist *TaskGroup) Limiter(limit int, interval time.Duration) *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) Limiter(limit int, interval time.Duration) *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
 
-	tlist.counters.Increment("set.limiter.default", 1)
-	tlist.rate = rate.New(limit, interval)
-	return tlist
+	tq.counters.Increment("set.limiter.default", 1)
+	tq.rate = rate.New(limit, interval)
+	return tq
 }
 
-func (tlist *TaskGroup) CPU() *TaskGroup {
-	tlist.lock.Lock()
-	defer tlist.lock.Unlock()
+func (tq *TaskQueue) LimiterWithKey(limit int, interval time.Duration, key string) string {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+	tq.counters.Increment("add.limiter", 1)
 
-	tlist.counters.Increment("set.limiter.cpu", 1)
+	return tq.limiter.Add(limit, interval, key)
+}
+
+func (tq *TaskQueue) CPU() *TaskQueue {
+	tq.lock.Lock()
+	defer tq.lock.Unlock()
+
+	tq.counters.Increment("set.limiter.cpu", 1)
 	lcpu, err := cpu.New(nil)
 	if err != nil {
 		log.Fatal("could not instanciate the cpu limiter")
-		return tlist
+		return tq
 	}
-	tlist.limiter.cpu = lcpu
-	return tlist
+	tq.limiter.cpu = lcpu
+	return tq
 }
 
 func (rl *Limiter) Add(limit int, interval time.Duration, key string) string {

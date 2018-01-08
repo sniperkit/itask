@@ -15,7 +15,9 @@ import (
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 
+	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/sniperkit/cuckoofilter"
+
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"
@@ -57,6 +59,7 @@ type Github struct {
 	timer        *time.Timer
 	rateMu       sync.Mutex
 	cfMax        *uint32
+	cfVisited    *cuckoo.CuckooFilter
 	cfDone       *cuckoofilter.Filter
 	cf404        *cuckoofilter.Filter
 	counters     *counter.Oc

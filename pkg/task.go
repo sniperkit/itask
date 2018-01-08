@@ -24,6 +24,12 @@ type TaskHanlder interface{}
 // A Task is a function called in specified order by RunTasks(). It receives the queues configured context object to operate on.
 type TaskQ func(ctx interface{}) error
 
+type TaskRecoverMsg struct {
+	FuncName  string
+	StartTime int64 // in nano seconds
+	Err       interface{}
+}
+
 // A Task is a function called in specified order by RunTasks(). It receives the queues configured context object to operate on.
 // type Task func(ctx interface{}) error
 
@@ -48,6 +54,11 @@ type Task struct {
 	counters     *counter.Oc
 	rate         *rate.RateLimiter
 	Result       TaskResult
+
+	// preHandlers  []*Handler // sync execute
+	// handlers     []*Handler // can be sync or parallel
+	// postHandlers []*Handler // sync execute
+	// onRecover    func(*TaskRecoverMsg)
 }
 
 // ContinueWith
@@ -95,7 +106,7 @@ func (task *Task) Wait() {
 	task.wait.Wait()
 }
 
-func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
+func (task *Task) RunInGroup(tq *TaskQueue) *Task {
 	// task.lock.Lock()
 	// defer task.lock.Unlock()
 
@@ -128,10 +139,10 @@ func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
 
 				}
 			}
-			// tlist.worker.complete <- task
-			// tlist.LogTaskFinished(tlist.worker, task)
+			// tq.worker.complete <- task
+			// tq.LogTaskFinished(tq.worker, task)
 			task.wait.Done()
-			tlist.counters.Increment("completed", 1)
+			tq.counters.Increment("completed", 1)
 		}()
 
 		fn := reflect.ValueOf(task.fn)
@@ -157,8 +168,8 @@ func (task *Task) RunInGroup(tlist *TaskGroup) *Task {
 		}
 
 		if task.repeat {
-			tlist.EnqueueFuncEvery(task.name, task.interval, task.fn, task.args)
-			// tlist.EnqueueTaskEvery(task)
+			tq.EnqueueFuncEvery(task.name, task.interval, task.fn, task.args)
+			// tq.EnqueueTaskEvery(task)
 		}
 
 	})

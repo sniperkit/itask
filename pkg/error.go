@@ -12,6 +12,10 @@ const (
 	errStackIsEmpty             = Error("Stack is empty")
 	errCyclicDependencyDetected = Error("task must not add itself as a dependency")
 	errIsAlreadyRunning         = Error("tasker: already run")
+	errTypeNotFunction          = Error("argument type not function")
+	errInArgsMissMatch          = Error("input arguments count not match")
+	errOutCntMissMatch          = Error("output parameter count not match")
+	errExecuteTimeout           = Error("parallel execute timeout")
 	errIndexLowLink             = "w's index and lowlink differ, how!?"
 )
 

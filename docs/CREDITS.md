@@ -9,3 +9,4 @@
 - https://github.com/andreaskoch/gargantua/blob/develop/statistics.go
 - https://github.com/andreaskoch/gargantua/blob/develop/dashboard.go
 - https://github.com/lifei6671/async/blob/master/tasks.go
+- https://github.com/AlexsJones/choke/blob/master/src/queue/queue.go#L56
