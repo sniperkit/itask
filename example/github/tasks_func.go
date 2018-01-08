@@ -13,21 +13,21 @@ import (
 
 var (
 	starTasker *xtask.Tasker
-	infoTasker *xtask.Tasker
+	metaTasker *xtask.Tasker
 	refTasker  *xtask.Tasker
 	treeTasker *xtask.Tasker
 )
 
 func newGlobalTaskers() {
 	starTasker, _ = xtask.NewTasker(20)
-	infoTasker, _ = xtask.NewTasker(20)
+	metaTasker, _ = xtask.NewTasker(20)
 	refTasker, _ = xtask.NewTasker(20)
 	treeTasker, _ = xtask.NewTasker(20)
 }
 
 func runGlobalTaskers() {
 	starTasker.Limiter(75, time.Minute).Tachymeter().Run()
-	infoTasker.Limiter(17, time.Second).Tachymeter().Run()
+	metaTasker.Limiter(17, time.Second).Tachymeter().Run()
 	refTasker.Limiter(17, time.Second).Tachymeter().Run()
 	treeTasker.Limiter(17, time.Second).Tachymeter().Run()
 }
@@ -52,7 +52,7 @@ func getStarsFunc(page int) xtask.Tsk {
 				taskName := fmt.Sprintf("repos/%s/topics", k)
 				if !visisted(taskName) {
 					log.Println("[ADD] taskName ", taskName)
-					err := infoTasker.Add(taskName, nil, getTopicsFunc(r[0], r[1]))
+					err := metaTasker.Add(taskName, nil, getTopicsFunc(r[0], r[1]))
 					if err != nil {
 						log.Println("preloadTasker.error(): ", err)
 					}
@@ -63,7 +63,7 @@ func getStarsFunc(page int) xtask.Tsk {
 				taskName = fmt.Sprintf("repos/%s/readme", k)
 				if !visisted(taskName) {
 					log.Println("[ADD] taskName ", taskName)
-					err := infoTasker.Add(taskName, nil, getReadmeFunc(r[0], r[1]))
+					err := metaTasker.Add(taskName, nil, getReadmeFunc(r[0], r[1]))
 					if err != nil {
 						log.Println("preloadTasker.error(): ", err)
 					}
@@ -73,7 +73,7 @@ func getStarsFunc(page int) xtask.Tsk {
 				// repo refs
 				taskName = fmt.Sprintf("repos/%s", k)
 				log.Println("[ADD] taskName ", taskName)
-				err := infoTasker.Add(taskName, nil, getRepoFunc(r[0], r[1]))
+				err := metaTasker.Add(taskName, nil, getRepoFunc(r[0], r[1]))
 				if err != nil {
 					log.Println("preloadTasker.error(): ", err)
 				}

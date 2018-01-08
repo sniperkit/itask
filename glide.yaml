@@ -2,27 +2,55 @@ package: github.com/sniperkit/xtask
 ignore:
 - github.com/jbrukh/bayesian
 import:
-- package: gopkg.in/toqueteos/substring.v1
+- package: github.com/boz/go-throttle
+- package: github.com/cenkalti/backoff
+- package: github.com/clarketm/searchablelist
 - package: github.com/fatih/color
 - package: github.com/fatih/structs
+- package: github.com/gizak/termui
 - package: github.com/google/go-github
   subpackages:
   - github
 - package: github.com/gregjones/httpcache
-- package: github.com/ishare/itask
+- package: github.com/hoop33/entrevista
+- package: github.com/jinzhu/configor
+- package: github.com/json-iterator/go
 - package: github.com/juju/errgo
-- package: github.com/rafaeldias/async
+- package: github.com/perriv/go-tasker
+- package: github.com/pkg/errors
 - package: github.com/satori/go.uuid
 - package: github.com/segmentio/stats
   subpackages:
   - httpstats
-- package: github.com/shomali11/util
+- package: github.com/seiflotfy/cuckoofilter
+- package: github.com/shirou/gopsutil
   subpackages:
-  - xconcurrency
+  - cpu
+- package: github.com/sniperkit/cuckoofilter
 - package: github.com/sniperkit/flatten
+- package: github.com/sniperkit/go-tasker
 - package: github.com/sniperkit/xcache
   subpackages:
   - backend/default/badger
   - backend/default/diskv
-- package: github.com/xh3b4sd/taskq
+- package: github.com/sniperkit/xlogger
+  subpackages:
+  - pkg
+- package: github.com/trustmaster/goflow
+- package: go.uber.org/ratelimit
 - package: golang.org/x/oauth2
+  subpackages:
+  - jwt
+- package: google.golang.org/api
+  subpackages:
+  - bigquery/v2
+  - googleapi
+- package: gopkg.in/alecthomas/kingpin.v2
+testImport:
+- package: github.com/jamiealquiza/tachymeter
+- package: github.com/mtojek/localserver
+- package: github.com/onsi/ginkgo
+- package: github.com/onsi/gomega
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert

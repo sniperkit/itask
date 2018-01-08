@@ -13,7 +13,7 @@ import (
 
 var (
 	starredList *xtask.TaskQueue = xtask.NewTaskQueue()
-	infoList    *xtask.TaskQueue = xtask.NewTaskQueue()
+	metaList    *xtask.TaskQueue = xtask.NewTaskQueue()
 	refList     *xtask.TaskQueue = xtask.NewTaskQueue()
 	treeList    *xtask.TaskQueue = xtask.NewTaskQueue()
 )
@@ -48,7 +48,7 @@ var getStars = func(page int) {
 			taskName := fmt.Sprintf("repos/%s/topics", k)
 			if !visisted(taskName) {
 				log.Println("[ADD] taskName ", taskName)
-				infoList.AddTask(xtask.NewTask(taskName, getTopics, r[0], r[1]))
+				metaList.AddTask(xtask.NewTask(taskName, getTopics, r[0], r[1]))
 			} else {
 				counters.Increment("getTopics.task.dequeued", 1)
 			}
@@ -56,14 +56,14 @@ var getStars = func(page int) {
 			taskName = fmt.Sprintf("repos/%s/readme", k)
 			if !visisted(taskName) {
 				log.Println("[ADD] taskName ", taskName)
-				infoList.AddTask(xtask.NewTask(taskName, getReadme, r[0], r[1]))
+				metaList.AddTask(xtask.NewTask(taskName, getReadme, r[0], r[1]))
 			} else {
 				counters.Increment("getReadme.task.dequeued", 1)
 			}
 			// repo info
 			taskName = fmt.Sprintf("repos/%s", k)
 			log.Println("[ADD] taskName ", taskName)
-			infoList.AddTask(xtask.NewTask(taskName, getRepo, r[0], r[1]))
+			metaList.AddTask(xtask.NewTask(taskName, getRepo, r[0], r[1]))
 		}
 	}
 	addMetrics(t, 1, err != nil)
