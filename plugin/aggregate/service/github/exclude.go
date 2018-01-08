@@ -17,11 +17,6 @@ var (
 	counters  *counter.Oc
 )
 
-/*
-	Refs:
-	- https://github.com/queirozfcom/tracker-api/blob/master/src/github.com/queirozfcom/trackerapi/service.go
-*/
-
 func (g *Github) CacheCount() int {
 	if g.cfVisited == nil {
 		return 0
@@ -37,7 +32,6 @@ func (g *Github) LoadCache(max int, prefix string, remove string, stopPatterns [
 	defer g.mu.Unlock()
 
 	if g.cfMax == nil && g.xcache != nil {
-
 		g.counters.Increment("cache.load", 1)
 		g.counters.Increment("cache.maxKeys", max)
 		maxKeys := uint32(max)
@@ -69,11 +63,9 @@ func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, 
 				if cnt != nil {
 					cnt.Increment("github.cache.skipped", 1)
 				}
-				// log.Println("[missing prefix] skipping slug ", slug)
 				continue
 			}
 		}
-
 		if stopPatterns != nil {
 			var skip bool
 			for _, pattern := range *stopPatterns {
@@ -81,7 +73,6 @@ func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, 
 					if cnt != nil {
 						cnt.Increment("github.cache.skipped", 1)
 					}
-					// log.Println("[contains stop word] skipping slug ", slug)
 					skip = true
 					break
 				}
@@ -90,25 +81,17 @@ func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, 
 				continue
 			}
 		}
-
 		if remove != nil {
-			// func Replace(s, old, new string, n int) string
 			slug = strings.Replace(slug, *remove, "", -1)
 			if cnt != nil {
 				cnt.Increment("github.cache.remove.substring", 1)
 			}
 		}
-
-		// slug = strings.Replace(slug, "/", ".", -1)
-		// log.Println("adding cache.slug=", slug)
-
 		registry.InsertUnique([]byte(slug))
 		if cnt != nil {
 			cnt.Increment("github.cache.entry", 1)
 		}
-
 	}
-
 	return registry, int(registry.Count())
 }
 

@@ -11,11 +11,9 @@ import (
 	"github.com/sniperkit/xtask/plugin/rate"
 )
 
-// var log = logger.GetLogger("discovery")
-
 var (
 	Service             *Github
-	rateLimiters        = map[string]*rate.RateLimiter{} // make(map[string]*rate.RateLimiter)
+	rateLimiters        = map[string]*rate.RateLimiter{}
 	isBackoff           bool
 	defaultOpts         *Options
 	defaultRetryDelay   time.Duration = 3 * time.Second
@@ -35,7 +33,7 @@ func New(tokens []*service.Token, opts *Options) *Github {
 		ctoken:       tokens[0].Key,
 		ctokens:      tokens,
 		coptions:     opts,
-		rateLimiters: make(map[string]*rate.RateLimiter, len(tokens)), // map[string]*rate.RateLimiter{}, //
+		rateLimiters: make(map[string]*rate.RateLimiter, len(tokens)),
 		counters:     counter.NewOc(),
 	}
 	g.getClient(tokens[0].Key)
