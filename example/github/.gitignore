@@ -1,4 +1,3 @@
 *
 !.gitignore
 !*.go
-!config.yaml-example

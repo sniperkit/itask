@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/perriv/go-tasker"
+	"github.com/segmentio/stats"
+
 	"github.com/sniperkit/xtask/plugin/counter"
 )
 
@@ -73,4 +75,15 @@ type funcMetrics struct {
 		failed int           `metric:"failed" type:"counter"`
 		time   time.Duration `metric:"time"  type:"histogram"`
 	} `metric:"func.calls"`
+}
+
+func addMetrics(start time.Time, incr int, failed bool) {
+	callTime := time.Now().Sub(start)
+	m := &funcMetrics{}
+	m.calls.count = incr
+	m.calls.time = callTime
+	if failed {
+		m.calls.failed = incr
+	}
+	stats.Report(m)
 }

@@ -1,19 +1,10 @@
 package main
 
 import (
-	"github.com/sniperkit/xtask/pkg"
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 )
 
-var (
-	config        Config
-	starredList   *xtask.TaskQueue = xtask.NewTaskQueue()
-	preloadList   *xtask.TaskQueue = xtask.NewTaskQueue()
-	starredTasker *xtask.Tasker
-	preloadTasker *xtask.Tasker
-	extraTasker   *xtask.Tasker
-	treeTasker    *xtask.Tasker
-)
+var config Config
 
 type Config struct {
 	App struct {
