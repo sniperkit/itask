@@ -3,13 +3,13 @@ package xtask
 import (
 	"container/list"
 	"fmt"
-	"log"
 	"math/rand"
 	"os"
 	"reflect"
 	"sync"
 	"time"
 
+	// "github.com/anacrolix/sync"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/counter"
 	"github.com/sniperkit/xtask/plugin/rate"

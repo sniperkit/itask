@@ -1,0 +1,22 @@
+# References
+
+- https://github.com/rafaeldias/async/blob/master/funcs.go
+- https://github.com/xh3b4sd/taskq
+- https://github.com/xh3b4sd/matic/blob/master/collector/source_code.go
+- https://github.com/xh3b4sd/matic/blob/master/collector/collector.go
+- https://raw.githubusercontent.com/rafaeldias/async/master/results.go
+- https://github.com/andreaskoch/gargantua/blob/develop/crawler.go
+- https://github.com/andreaskoch/gargantua/blob/develop/statistics.go
+- https://github.com/andreaskoch/gargantua/blob/develop/dashboard.go
+- https://github.com/lifei6671/async/blob/master/tasks.go
+- https://github.com/AlexsJones/choke/blob/master/src/queue/queue.go#L56
+- https://github.com/segmentio/pprof-server/blob/master/cmd/pprof-server/main.go
+- https://github.com/segmentio/stats/commit/ace3fd92ff4b73a07cad3c16961b520e8bf373fa
+- https://github.com/segmentio/consul-router/blob/master/main.go
+- https://github.com/segmentio/consul-router/blob/master/main.go
+- https://github.com/smook1980/sourcegraph/blob/master/pkg/errcode/code.go
+- https://github.com/pachyderm/pachyderm
+- https://github.com/EricAnderson1000/sourcegraph/blob/master/services/backend/repos_remote.go
+- https://github.com/b3ntly/obits/blob/master/server/server.go
+- https://github.com/leewind/git-project-collection/blob/master/service/collector_service.go
+- https://github.com/leewind/git-project-collection/blob/master/example/consumer.go

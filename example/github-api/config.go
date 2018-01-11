@@ -11,9 +11,7 @@ import (
 var config Config
 
 func loadConfig() {
-	t := time.Now()
 	configor.Load(&config, "shared/config/config.yaml")
-	addMetrics(t, 1, false)
 }
 
 type Config struct {
@@ -51,9 +49,19 @@ type Config struct {
 		} `json:"workers" yaml:"workers" toml:"workers"`
 	} `json:"pipeline" yaml:"pipeline" toml:"pipeline"`
 
+	Logger struct {
+		Disabled      bool                   `default:"false" json:"disabled" toml:"disabled" yaml:"disabled"`
+		Backend       string                 `default:"logrus" json:"backend" toml:"backend" yaml:"backend"`
+		Level         string                 `default:"info" json:"level" toml:"level" yaml:"level"`
+		Encoding      string                 `default:"json" json:"encoding" toml:"encoding" yaml:"encoding"`
+		DisableCaller bool                   `default:"false" json:"disable_caller" toml:"disable_caller" yaml:"disable_caller"`
+		OutputFile    string                 `json:"output_file" yaml:"output_file" toml:"output_file"`
+		InitialFields map[string]interface{} `json:"fields" yaml:"fields" toml:"fields"`
+	} `json:"logger" yaml:"logger" toml:"logger"`
+
 	Stats struct {
 		Engine struct {
-			Disabled  bool   `json:"disabled" yaml:"disabled" toml:"disabled"`                            // disable stats forwarding to stats engine
+			Disabled  bool   `default:"false" json:"disabled" yaml:"disabled" toml:"disabled"`            // disable stats forwarding to stats engine
 			Name      string `default:"influxdb" json:"engine" yaml:"engine" toml:"engine"`               // engine name to use
 			RetryConn int    `default:"3" json:"retry_connect" yaml:"retry_connect" toml:"retry_connect"` // Maximun attempt to try to connect to the stats engine
 

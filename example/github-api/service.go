@@ -10,15 +10,24 @@ import (
 // github client
 var ghClient *github.Github
 
-func githubClient() *github.Github {
+func githubClient(config *Config) (client *github.Github, err error) {
 	t := time.Now()
-	client := github.New(config.Service.Github.Tokens, &github.Options{
-		Page:    config.Service.Github.Offset,
-		PerPage: config.Service.Github.PerPage,
-		Runner:  config.Service.Github.Runner,
+	ghCfg := config.Service.Github
+	client = github.New(ghCfg.Tokens, &github.Options{
+		Page:    ghCfg.Offset,
+		PerPage: ghCfg.PerPage,
+		Runner:  ghCfg.Runner,
 	})
 	addMetrics(t, 1, false)
-	return client
+	if client == nil {
+		err = errGithubClient
+	}
+	return client, err
+}
+
+func visisted(taskName string) bool {
+	return false
+	// return ghClient.CacheSlugExists(taskName)
 }
 
 // service abstraction (github, gitlab, bitbucket, arxiv, ...)

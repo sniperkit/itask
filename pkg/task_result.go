@@ -12,6 +12,7 @@ type ContinueWithTask func(TaskResult)
 // TaskResult
 type TaskResult struct {
 	done   chan bool
+	Name   string
 	Result interface{}
 	Error  error
 }

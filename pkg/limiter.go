@@ -1,7 +1,6 @@
 package xtask
 
 import (
-	"log"
 	"math/rand"
 	"time"
 

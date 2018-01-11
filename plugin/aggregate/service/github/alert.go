@@ -1,7 +1,6 @@
 package github
 
 import (
-	"log"
 	"time"
 )
 

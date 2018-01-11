@@ -11,8 +11,10 @@ package xtask
 import (
 	"context"
 	"errors"
-	"sync"
 	"sync/atomic"
+	//"sync"
+
+	"github.com/anacrolix/sync"
 )
 
 // Semaphore counting resizable semaphore synchronization primitive.

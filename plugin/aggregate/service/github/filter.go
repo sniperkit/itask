@@ -1,8 +1,8 @@
 package github
 
 import (
-	"log"
 	"strings"
+	"time"
 
 	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/sniperkit/cuckoofilter"
@@ -14,10 +14,11 @@ var (
 	cfVisited *cuckoo.CuckooFilter
 	cfDone    *cuckoofilter.Filter
 	cf404     *cuckoofilter.Filter
-	counters  *counter.Oc
 )
 
 func (g *Github) CacheCount() int {
+	defer funcTrack(time.Now())
+
 	if g.cfVisited == nil {
 		return 0
 	}
@@ -25,6 +26,8 @@ func (g *Github) CacheCount() int {
 }
 
 func (g *Github) LoadCache(max int, prefix string, remove string, stopPatterns []string) bool {
+	defer funcTrack(time.Now())
+
 	if g.client == nil {
 		g.client = getClient(g.ctoken)
 	}
@@ -48,6 +51,8 @@ func (g *Github) LoadCache(max int, prefix string, remove string, stopPatterns [
 }
 
 func (g *Github) CacheSlugExists(slug string) bool {
+	defer funcTrack(time.Now())
+
 	return g.cfVisited.Lookup([]byte(slug))
 }
 
@@ -55,6 +60,8 @@ func (g *Github) CacheSlugExists(slug string) bool {
 // g.cfDone.Count()
 
 func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, stopPatterns *[]string, existingKeys *map[string]*interface{}) (*cuckoo.CuckooFilter, int) {
+	defer funcTrack(time.Now())
+
 	registry := cuckoo.NewDefaultCuckooFilter()
 	for key, _ := range *existingKeys {
 		slug := key

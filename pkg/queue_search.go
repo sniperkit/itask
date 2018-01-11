@@ -2,7 +2,9 @@ package xtask
 
 import (
 	"container/list"
-	"sync"
+	//"sync"
+
+	"github.com/anacrolix/sync"
 )
 
 // SearchableList list.List

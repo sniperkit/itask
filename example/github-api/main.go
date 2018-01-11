@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/sniperkit/xtask/pkg"
 	"github.com/sniperkit/xtask/plugin/aggregate/service/github"
 )
 
@@ -12,17 +12,22 @@ func main() {
 	loadConfig()
 	newGlobalTaskers()
 
-	ghClient = githubClient()
-	// mapFunc("Get", "Get") // Get or GetFunc
+	newFact()
 
-	t := time.Now()
-	_, resp, err := ghClient.Get("getStars", &github.Options{
+	ghClient, errComponent = githubClient(&config)
+	if errComponent != nil {
+		log.Fatal(errComponent.Error())
+	}
+
+	_, resp, err := ghClient.GetFunc("getStars", &github.Options{
 		Page:     1,
 		PerPage:  config.Service.Github.PerPage,
 		Runner:   config.Service.Github.Runner,
 		Accounts: config.Service.Github.Accounts,
 	})
-	addMetrics(t, 1, err != nil)
+	if err != nil {
+		log.Fatalln("error: ", err)
+	}
 
 	if config.App.Verbose {
 		log.Println("LastPage:", resp.LastPage)
@@ -33,32 +38,18 @@ func main() {
 	}
 
 	// move separately ?!
-	t = time.Now()
-	ghClient.LoadCache(config.Service.Github.MaxPage*config.Service.Github.PerPage*5, ghClient.PrefixApi(), ghClient.PrefixApi(), nil) //, []string{"/starred"})
-	addMetrics(t, 1, false)
-
+	// ghClient.LoadCache(config.Service.Github.MaxPage*config.Service.Github.PerPage*5, ghClient.PrefixApi(), ghClient.PrefixApi(), nil) //, []string{"/starred"})
+	writer := "test"
+	newWriter(writer)
 	for i := config.Service.Github.Offset; i <= config.Service.Github.MaxPage; i++ {
-
-		t = time.Now()
 		taskName := fmt.Sprintf("activity-starred-%d", i)
-		err := starTasker.Add(taskName, nil, getStarsFunc(i))
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		addMetrics(t, 1, false)
-
-		t = time.Now()
+		starTasker.Add(taskName, nil, getStarsFunc(taskName, i)).ContinueWithHandler(exportInterface).ContinueWithHandler(func(result xtask.TaskInfo) {
+			fmt.Println("ContinueWithHandler().taskName", taskName)
+		})
 		runGlobalTaskers()
-		addMetrics(t, 1, false)
-
-		t = time.Now()
+		writers[writer].Flush()
 		newGlobalTaskers()
-		addMetrics(t, 1, false)
-
 	}
-
-	t = time.Now()
 	runGlobalTaskers()
-	addMetrics(t, 1, false)
 
 }

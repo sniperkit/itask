@@ -1,8 +1,6 @@
 package xtask
 
 import (
-	//"log"
-
 	// "github.com/rcrowley/go-metrics"
 	"github.com/sniperkit/xtask/plugin/stats/tachymeter"
 	// "github.com/sniperkit/xtask/plugin/stats/collection"

@@ -10,6 +10,8 @@ func isStatus2XX(status int) bool {
 }
 
 func randIntMapKey(m map[int]bool) int {
+	defer funcTrack(time.Now())
+
 	i := rand.Intn(len(m))
 	for k, v := range m {
 		if !v {
@@ -23,6 +25,8 @@ func randIntMapKey(m map[int]bool) int {
 }
 
 func random(min, max int) int {
+	defer funcTrack(time.Now())
+
 	rand.Seed(time.Now().Unix())
 	return rand.Intn(max-min) + min
 }

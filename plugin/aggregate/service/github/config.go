@@ -16,8 +16,8 @@ var (
 	rateLimiters        = map[string]*rate.RateLimiter{}
 	isBackoff           bool
 	defaultOpts         *Options
-	defaultRetryDelay   time.Duration = 3 * time.Second
-	defaultAbuseDelay   time.Duration = 3 * time.Second
+	defaultRetryDelay   time.Duration = 150 * time.Millisecond
+	defaultAbuseDelay   time.Duration = 5 * time.Second
 	defaultRetryAttempt uint64        = 1
 	defaultPrefixApi                  = "https://api.github.com/"
 )
@@ -29,6 +29,8 @@ var (
 )
 
 func New(tokens []*service.Token, opts *Options) *Github {
+	defer funcTrack(time.Now())
+
 	g := &Github{
 		ctoken:       tokens[0].Key,
 		ctokens:      tokens,

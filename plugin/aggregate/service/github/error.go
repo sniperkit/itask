@@ -9,10 +9,16 @@ import (
 )
 
 var (
+	errorNotStruct           = errors.New("error, not a struct")
+	errorMappingJson         = errors.New("error while trying to map json response")
+	errorRateLimitReached    = errors.New("error, rate limite for the current token is reached.")
+	errorResponseIsNull      = errors.New("error while receiving the response of the http request.")
 	errorMarshallingResponse = errors.New("error while trying to marshall the api response, entity object is nil")
 )
 
 func isTemporaryError(err error, wait bool) bool {
+	defer funcTrack(time.Now())
+
 	if err == nil {
 		return false
 	}

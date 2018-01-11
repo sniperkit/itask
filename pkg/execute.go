@@ -1,8 +1,9 @@
 package xtask
 
 import (
-	"log"
-	"sync"
+	//"sync"
+
+	"github.com/anacrolix/sync"
 )
 
 // RunTasks() registers tasks in the specified order.

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/sniperkit/xstats/client/datadog"
 	"github.com/sniperkit/xstats/client/influxdb"
 	"github.com/sniperkit/xstats/pkg"
@@ -36,6 +34,15 @@ var (
 		- Or, if you don't want/need a background service you can just run: `chronograf`
 */
 
+/*
+	if len(config.Dogstatsd.Address) != 0 {
+		stats.Register(datadog.NewClientWith(datadog.ClientConfig{
+			Address:    config.Dogstatsd.Address,
+			BufferSize: config.Dogstatsd.BufferSize,
+		}))
+	}
+*/
+
 func newStatsEngine() {
 	switch config.Stats.Engine.Name {
 	case "datadog":
@@ -48,22 +55,3 @@ func newStatsEngine() {
 }
 
 func statsWithTags() {}
-
-type funcMetrics struct {
-	calls struct {
-		count  int           `metric:"count" type:"counter"`
-		failed int           `metric:"failed" type:"counter"`
-		time   time.Duration `metric:"time"  type:"histogram"`
-	} `metric:"func.calls"`
-}
-
-func addMetrics(start time.Time, incr int, failed bool) {
-	callTime := time.Now().Sub(start)
-	m := &funcMetrics{}
-	m.calls.count = incr
-	m.calls.time = callTime
-	if failed {
-		m.calls.failed = incr
-	}
-	stats.Report(m)
-}

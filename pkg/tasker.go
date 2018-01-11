@@ -1,18 +1,25 @@
 package xtask
 
 import (
+	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
-	"log"
 	"math/rand"
-	"sync"
+	"reflect"
+	"runtime"
 	"time"
+	// "sync"
 	// "context"
 	// "sync/atomic"
 
+	"github.com/anacrolix/sync"
 	"github.com/boz/go-throttle"
+	"github.com/k0kubun/pp"
 	"go.uber.org/ratelimit"
+	// "github.com/VividCortex/robustly"
+	// "github.com/eapache/go-resiliency/semaphore"
+	//"github.com/eapache/channels"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/counter"
@@ -20,15 +27,15 @@ import (
 	"github.com/sniperkit/xtask/plugin/stats/tachymeter"
 )
 
-/*
-	Refs:
-	- https://github.com/beefsack/go-rate
-	- https://github.com/alexurquhart/rlimit/blob/master/rlimit.go
-*/
+func init() {
+	sync.Enable()
+}
 
 type CycleError [][]string
 
 func (ce CycleError) Error() string {
+	defer funcTrack(time.Now())
+
 	msg := "tasker: "
 	if len(ce) > 1 {
 		msg += "cycles"
@@ -65,14 +72,32 @@ func (dnfe *DepNotFoundError) Error() string {
 
 // A Task is a function called with no arguments that returns an error. If
 // variable information is required, consider providing a closure.
-type Tsk func() error
+type Tsk func() *TaskInfo // , time.Duration
 
 // task info holds run-time information related to a task identified by taskInfo.name.
-type taskInfo struct {
-	task Tsk         // The task itself.
-	done bool        // Prevents running a task more than once.
-	err  error       // Stores error on failure.
-	mux  *sync.Mutex // Controls access to this task.
+type TaskInfo struct {
+	id      int
+	name    string
+	hash    uuid.UUID
+	task    Tsk // The task itself.
+	fn      interface{}
+	args    []interface{}
+	handler reflect.Value
+	params  []reflect.Value
+	Result  *TaskResult
+	err     error // Stores error on failure.
+	done    bool  // Prevents running a task more than once.
+	// lock         *sync.RWMutex // Controls access to this task.
+	mux *sync.Mutex // Controls access to this task.
+	// once         sync.Once   // Prevents running a task more than once.
+	wait         *sync.WaitGroup
+	continueWith *list.List
+	delay        time.Duration
+	nextRun      time.Time
+	interval     time.Duration
+	repeat       bool
+	counters     *counter.Oc
+	rate         *rate.RateLimiter
 
 	// Elements used in cycle detection.
 	index    int
@@ -80,16 +105,128 @@ type taskInfo struct {
 	on_stack bool
 }
 
-func (ti *taskInfo) lock() {
+func (ti *TaskInfo) lock() {
 	ti.mux.Lock()
 }
 
-func (ti *taskInfo) unlock() {
+func (ti *TaskInfo) unlock() {
 	ti.mux.Unlock()
 }
 
-func newTaskInfo(task Tsk) *taskInfo {
-	return &taskInfo{task, false, nil, &sync.Mutex{}, -1, -1, false}
+func GetTaskFuncName(t *Task) string {
+	defer funcTrack(time.Now())
+	if t == nil || t.fn == nil {
+		return ""
+	}
+	return runtime.FuncForPC(reflect.ValueOf(t.fn).Pointer()).Name()
+}
+
+func (tr *Tasker) ContinueWith2(name string, deps []string, task Tsk) *TaskInfo {
+	defer funcTrack(time.Now())
+	tr.Add(name, deps, task)
+	err_ch := make(chan error)
+	tr.runTask(name, err_ch)
+	ti := tr.tis[name]
+	ti.err = <-err_ch
+	// Do not run this task if one of its dependencies fail.
+	if ti.err != nil {
+		err_ch <- ti.err
+		return nil
+	}
+	return ti
+}
+
+// ContinueWithHandler
+type ContinueTaskWithHandler func(TaskInfo)
+
+// ContinueWithHandler
+type ContinueTaskWithFunc func(TaskInfo)
+
+// ContinueWithHandler
+type ContinueTaskWithTask func(TaskInfo)
+
+// type ContinueWithHandler func(TaskResult);
+
+// ContinueWithFunc
+func (ti *TaskInfo) ContinueWithFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
+	defer funcTrack(time.Now())
+	ti.lock()
+	defer ti.unlock()
+
+	handler := newTaskFunc(name, fn, args...)
+	ti.continueWith.PushFront(handler)
+	return ti
+}
+
+/*
+// ContinueWithTask
+func (ti *TaskInfo) ContinueWithHandler(handler ContinueTaskWithTask) *TaskInfo {
+	defer funcTrack(time.Now())
+	ti.lock()
+	defer ti.unlock()
+
+	ti.continueWith.PushFront(handler)
+	return ti
+}
+*/
+
+// Delay
+func (ti *TaskInfo) Delay(delay time.Duration) *TaskInfo {
+	defer funcTrack(time.Now())
+	ti.lock()
+	defer ti.unlock()
+
+	ti.delay = delay
+	return ti
+}
+
+func newTaskFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
+	defer funcTrack(time.Now())
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &TaskInfo{
+		// task:         task,
+		id:           random.Intn(10000),
+		hash:         uuid.NewV4(),
+		wait:         &sync.WaitGroup{},
+		mux:          &sync.Mutex{},
+		fn:           fn,
+		args:         args,
+		repeat:       false,
+		continueWith: list.New(),
+		delay:        0 * time.Second,
+		name:         name,
+		nextRun:      time.Now(),
+		counters:     counter.NewOc(),
+		rate:         &rate.RateLimiter{},
+		index:        -1,
+		lowlink:      -1,
+		done:         false,
+		err:          nil,
+		on_stack:     false,
+		Result:       &TaskResult{Error: nil, Result: nil},
+	}
+}
+
+func newTaskInfo(task Tsk) *TaskInfo {
+	defer funcTrack(time.Now())
+
+	return &TaskInfo{
+		task:         task,
+		done:         false,
+		err:          nil,
+		continueWith: list.New(),
+		wait:         &sync.WaitGroup{},
+		mux:          &sync.Mutex{},
+		repeat:       false,
+		delay:        0 * time.Second,
+		nextRun:      time.Now(),
+		index:        -1,
+		lowlink:      -1,
+		on_stack:     false,
+		Result:       &TaskResult{Error: nil, Result: nil},
+		// result: &TaskResult{},
+		// wait:     &sync.WaitGroup,
+	}
 }
 
 type Tasker struct {
@@ -97,7 +234,7 @@ type Tasker struct {
 	name string
 
 	// Map of taskInfo's indexed by task name.
-	tis  map[string]*taskInfo
+	tis  map[string]*TaskInfo
 	list *list.List
 
 	// Map of tasks names their dependencies. Its keys are identical to tis'.
@@ -138,6 +275,7 @@ type Tasker struct {
 
 // wait signals that a task is running and blocks until it may be run.
 func (tr *Tasker) wait() {
+	// defer funcTrack(time.Now())
 	if tr.semaphore != nil {
 		tr.semaphore <- true
 	}
@@ -145,6 +283,7 @@ func (tr *Tasker) wait() {
 
 // signal signals that a task is done.
 func (tr *Tasker) signal() {
+	// defer funcTrack(time.Now())
 	if tr.semaphore != nil {
 		<-tr.semaphore
 	}
@@ -155,6 +294,8 @@ func (tr *Tasker) signal() {
 //
 // Returns an error if n is invalid.
 func NewTasker(n int) (*Tasker, error) {
+	defer funcTrack(time.Now())
+
 	if n < -1 || n == 0 {
 		return nil, fmt.Errorf("n must be positive or -1: %d", n)
 	}
@@ -168,7 +309,7 @@ func NewTasker(n int) (*Tasker, error) {
 	hash := uuid.NewV4()
 	tr := &Tasker{
 		id:         random.Intn(10000),
-		tis:        make(map[string]*taskInfo),
+		tis:        make(map[string]*TaskInfo),
 		dep_graph:  make(map[string][]string),
 		semaphore:  semaphore,
 		index:      -1,
@@ -198,35 +339,94 @@ func NewTasker(n int) (*Tasker, error) {
 // may be nil, but task may not.
 //
 // An error is returned if name is not unique.
-func (tr *Tasker) Add(name string, deps []string, task Tsk) error {
+func (tr *Tasker) Add(name string, deps []string, task Tsk) *TaskInfo {
+	defer funcTrack(time.Now())
+
 	tr.mux.Lock()
 	defer tr.mux.Unlock()
 
 	if name == "" {
-		return errors.New("name is empty")
+		return nil // &Tsk{err: errors.New("name is empty")}
 	}
 	if _, ok := tr.tis[name]; ok {
-		return fmt.Errorf("task already added: %s", name)
+		return tr.tis[name] // &Tsk{err: fmt.Errorf("task already added: %s", name)}
 	}
 
 	// Prevent the basic cyclic dependency of one from occuring.
 	for _, dep := range deps {
 		if name == dep {
-			return errors.New("task must not add itself as a dependency")
+			return tr.tis[name] // &Tsk{err: errors.New("task must not add itself as a dependency")}
 		}
 	}
 
 	tr.tis[name] = newTaskInfo(task)
 	tr.dep_graph[name] = deps
 
-	return nil
+	tr.tis[name].Result = &TaskResult{Name: name}
+	return tr.tis[name]
+}
+
+// ContinueWithTask
+func (ti *TaskInfo) ContinueWithHandler(handler ContinueTaskWithTask) *TaskInfo {
+	defer funcTrack(time.Now())
+	ti.lock()
+	defer ti.unlock()
+
+	ti.continueWith.PushFront(handler)
+	return ti
+}
+
+func (tr *Tasker) ContinueWith(name string, deps []string, task Tsk) *Tasker {
+	defer funcTrack(time.Now())
+
+	/*
+		if _, ok := tr.tis[name]; !ok {
+			return tr
+		}
+	*/
+
+	tr.tis[name].continueWith.PushFront(task)
+	return tr
+}
+
+// xtask.Tsk
+
+func (t Tsk) PostProcess() Tsk {
+	defer funcTrack(time.Now())
+
+	f := reflect.Indirect(reflect.ValueOf(t))
+	if f.Kind() != reflect.Func {
+		return nil
+	}
+
+	pp.Println(f)
+	pp.Println(t)
+	// var res *TaskInfo
+	// res = t
+	// LogWithFields(Fields{"Tsk": t}).Println("*Tsk.PostProcess()...")
+	return t
+}
+
+func (t *TaskInfo) PostProcess() *TaskInfo {
+	defer funcTrack(time.Now())
+
+	t.mux.Lock()
+	defer t.mux.Unlock()
+
+	var msg string
+	if t.Result.Error != nil {
+		msg = t.Result.Error.Error()
+	}
+	LogWithFields(Fields{"error": msg, "result": t.Result.Result}).Println("PostProcess()...")
+	return t
 }
 
 func (tr *Tasker) Tachymeter() *Tasker {
-	size := tr.Count()
+	defer funcTrack(time.Now())
+	// tr.mux.Lock()
+	// defer tr.mux.Unlock()
 
-	tr.mux.Lock()
-	defer tr.mux.Unlock()
+	size := tr.Count()
 
 	tr.tachymeter = tachymeter.New(
 		&tachymeter.Config{
@@ -239,8 +439,9 @@ func (tr *Tasker) Tachymeter() *Tasker {
 }
 
 func (tr *Tasker) Count() int {
-	tr.mux.Lock()
-	defer tr.mux.Unlock()
+	defer funcTrack(time.Now())
+	// tr.mux.Lock()
+	// defer tr.mux.Unlock()
 
 	count := len(tr.tis)
 	return count
@@ -253,6 +454,8 @@ func (tr *Tasker) Count() int {
 //
 // It is called with the empty string, but called recursively with a task name.
 func (tr *Tasker) findCycles(v string) {
+	defer funcTrack(time.Now())
+
 	if v == "" {
 		// Initialize algorithm's state.
 		tr.index = 0
@@ -336,6 +539,8 @@ func (tr *Tasker) findCycles(v string) {
 // verify returns an error if any task dependencies haven't been added or any
 // cycles exist among the tasks.
 func (tr *Tasker) verify() error {
+	defer funcTrack(time.Now())
+
 	for name, deps := range tr.dep_graph {
 		for _, dep := range deps {
 			if _, ok := tr.tis[dep]; !ok {
@@ -347,9 +552,87 @@ func (tr *Tasker) verify() error {
 	if len(tr.cycles) > 0 {
 		return CycleError(tr.cycles)
 	}
-
 	return nil
 }
+
+/*
+func (tr *Tasker) runTaskOnce(name string, err_ch chan error) {
+	ti := tr.tis[name]
+
+	ti.lock()
+	defer ti.unlock()
+
+	ti.once.Do(func() {
+		ti.wait.Add(1)
+
+		// ti.counters.Increment("started", 1)
+
+		if ti.delay.Nanoseconds() > 0 {
+			// ti.counters.Increment("delayed", 1)
+			time.Sleep(ti.delay)
+		}
+
+		defer func() {
+			ti.done = true
+			// ti.counters.Increment("completed", 1)
+
+			if ti.continueWith.Len() > 0 {
+				// if task.continueWith != nil {
+				ti.counters.Increment("chained", 1)
+
+				if ti.Result.Error == nil {
+					result := *ti.Result
+					for element := ti.continueWith.Back(); element != nil; element = element.Prev() {
+						if tt, ok := element.Value.(ContinueWithHandler); ok {
+							tt(result)
+						}
+					}
+				}
+			}
+
+			// tq.worker.complete <- task
+			// tq.LogTaskFinished(tq.worker, task)
+			ti.wait.Done()
+			// tr.counters.Increment("completed", 1)
+		}()
+
+		fn := reflect.ValueOf(ti.fn)
+		fnType := fn.Type()
+		if fnType.Kind() != reflect.Func && fnType.NumIn() != len(ti.args) {
+			// ti.counters.Increment("unexpected", 1)
+			// log.Panic("Expected a function")
+			log.Print("Expected a function")
+			os.Exit(1)
+		}
+
+		var args []reflect.Value
+		for _, arg := range ti.args {
+			args = append(args, reflect.ValueOf(arg))
+		}
+
+		res := fn.Call(args)
+		for _, val := range res {
+			log.Println("Response:", val.Interface())
+		}
+
+		// Limit the number of consecutive tasks.
+		tr.wait()
+		defer tr.signal()
+		defer tr.timeTrack(time.Now(), name)
+
+		r := ti.task()
+
+		ti.Result.Name = r.Result.Name
+		ti.Result.Result = r.Result.Result
+		ti.Result.Error = r.Result.Error
+		ti.err = ti.Result.Error
+		err_ch <- ti.err
+
+
+	})
+	// return ti
+}
+*/
 
 // runTask is called recursivley as a goroutine to run tasks in parallel. It
 // runs all dependencies before running the provided task. The first error it
@@ -365,9 +648,9 @@ func (tr *Tasker) verify() error {
 // the Tasker's semaphore.
 // , tm *tachymeter.Tachymeter
 func (tr *Tasker) runTask(name string, err_ch chan error) {
-	tr.mux.Lock()
+	defer funcTrack(time.Now())
+
 	ti := tr.tis[name]
-	tr.mux.Unlock()
 
 	ti.lock()
 	defer ti.unlock()
@@ -386,17 +669,10 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 	// Run all dependencies first. Do not continue with the current task if one
 	// fails. If that happens, this task will inherit its error from the first
 	// one that failed.
-	tr.mux.Lock()
 	deps := tr.dep_graph[name]
-	tr.mux.Unlock()
 
 	dep_err_ch := make(chan error)
 	for _, dep := range deps {
-		// tr.mux.Lock()
-		//if tr.rate != nil {
-		//	tr.rate.Wait()
-		//}
-		// tr.mux.Unlock()
 		go tr.runTask(dep, dep_err_ch)
 	}
 	for _ = range deps {
@@ -411,22 +687,51 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 	if tr.rate != nil {
 		tr.rate.Wait()
 	}
+
 	// Limit the number of consecutive tasks.
 	tr.wait()
+	ti.wait.Add(1)
 	defer tr.signal()
+	defer tr.timeTrack(time.Now(), name)
 
-	start := time.Now()
-	ti.err = ti.task()
-	log.Println("runTask().tachymeter for ", name, "end", time.Since(start))
+	output := ti.task()
 
-	// tr.mux.Lock()
-	tr.tachymeter.AddTime(name, time.Since(start))
-	// tr.mux.Unlock()
+	go func() {
+		defer func() {
+			ti.done = true
+			if ti.continueWith != nil {
+				for element := ti.continueWith.Back(); element != nil; element = element.Prev() {
+					if tt, ok := element.Value.(ContinueTaskWithTask); ok {
+						tt(*output)
+					}
 
+				}
+			}
+			ti.wait.Done()
+		}()
+	}()
+
+	// robustly.Run(func() { ti.task() }, nil)
+
+	ti.Result.Name = output.Result.Name
+	ti.Result.Result = output.Result.Result
+	ti.Result.Error = output.Result.Error
+	ti.err = ti.Result.Error
 	err_ch <- ti.err
 }
 
+func (tr *Tasker) timeTrack(start time.Time, name string) {
+	tr.mux.Lock()
+	defer tr.mux.Unlock()
+
+	elapsed := time.Since(start)
+	log.Debugf("timeTrack() %s took %s", name, elapsed)
+	tr.tachymeter.AddTime(name, elapsed)
+}
+
 func (tr *Tasker) Limiter(limit int, interval time.Duration) *Tasker {
+	defer funcTrack(time.Now())
+
 	tr.mux.Lock()
 	defer tr.mux.Unlock()
 
@@ -437,6 +742,9 @@ func (tr *Tasker) Limiter(limit int, interval time.Duration) *Tasker {
 
 // runTasks runs a list of tasks using runTask and waits for them to finish.
 func (tr *Tasker) runTasks(names ...string) error {
+	defer funcTrack(time.Now())
+
+	var buf bytes.Buffer
 
 	if tr.tachymeter != nil {
 		log.Println("has tachymeter")
@@ -446,8 +754,8 @@ func (tr *Tasker) runTasks(names ...string) error {
 	err_ch := make(chan error)
 
 	for _, name := range names {
-		// tr.mux.Lock()
-		// tr.mux.Unlock()
+		sync.PrintLockTimes(&buf)
+		LogWithFields(Fields{"lock_times": buf.String()})
 		go tr.runTask(name, err_ch)
 	}
 
@@ -462,6 +770,8 @@ func (tr *Tasker) runTasks(names ...string) error {
 	}
 
 	if tr.tachymeter != nil {
+		tr.mux.Lock()
+		defer tr.mux.Unlock()
 		tr.tachymeter.SetWallTime(time.Since(tr.wallTime))
 		tr.results.Metrics = tr.tachymeter.Calc()
 		log.Println(tr.tachymeter.Calc().String())

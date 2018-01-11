@@ -1,6 +1,0 @@
-package main
-
-/*
-	Refs:
-	-
-*/

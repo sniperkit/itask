@@ -1,7 +1,9 @@
 package xtask
 
 import (
-	"sync"
+	//"sync"
+
+	"github.com/anacrolix/sync"
 )
 
 // string_stack is a generic slice with stack operations.

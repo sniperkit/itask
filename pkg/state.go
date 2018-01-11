@@ -1,7 +1,6 @@
 package xtask
 
 import (
-	"log"
 	"time"
 
 	"github.com/fatih/color"

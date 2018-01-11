@@ -2,7 +2,9 @@ package xtask
 
 /*
 import (
-	"sync"
+	//"sync"
+
+	"github.com/anacrolix/sync"
 )
 
 // Each return value of handler indicates whether to continue chain call

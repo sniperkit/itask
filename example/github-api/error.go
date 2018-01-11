@@ -5,6 +5,9 @@ import (
 )
 
 var (
-	errNotFoundLatestSHA = errors.New("error occured while reading latest SHA.")
-	errRepoInfo          = errors.New("error occured while reading repository information.")
+	errComponent         error
+	errGithubClient      = errors.New("error occured while trying to connect to github API clinet.")
+	errNotFoundLatestSHA = errors.New("error occured while reading repo latest SHA.")
+	errRepoInfo          = errors.New("error occured while reading repository info.")
+	errUserInfo          = errors.New("error occured while reading user info.")
 )
