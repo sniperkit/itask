@@ -2,23 +2,19 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/github"
+	"github.com/src-d/enry/data"
 
 	"github.com/sniperkit/xtask/util/runtime"
-
-	"github.com/sniperkit/xutil/plugin/format/convert/mxj"
-	"github.com/sniperkit/xutil/plugin/format/json/flatten"
+	"github.com/sniperkit/xutil/plugin/format/convert/mxj/pkg"
 	"github.com/sniperkit/xutil/plugin/struct"
-	// "github.com/k0kubun/pp"
 )
-
-/*
-	// Once again, get the same repository, but override the request so we bypass the cache and hit GitHub's API.
-	reqModifyingTransport.Override(regexp.MustCompile(`^/repos/sourcegraph/apiproxy$`), apiproxy.NoCache, true)
-*/
 
 func (g *Github) counterTrack(name string, incr int) {
 	go func() {
@@ -56,6 +52,7 @@ func getStars(g *Github, opts *Options) (map[string]interface{}, *github.Respons
 
 	var stars []*github.StarredRepository
 	var response *github.Response
+
 	get := func() error {
 		var err error
 		stars, response, err = g.client.Activity.ListStarred(
@@ -96,93 +93,19 @@ func getStars(g *Github, opts *Options) (map[string]interface{}, *github.Respons
 		return nil, response, errorMarshallingResponse
 	}
 
-	// Check if server is a struct or a pointer to struct
-	/*
-		if !structs.IsStruct(stars) {
-			pp.Println(stars)
-			return nil, response, errorNotStruct
+	res := make(map[string]interface{}, 0)
+	for _, star := range stars {
+		key := fmt.Sprintf("%s/%d", star.Repository.GetFullName(), star.Repository.GetID())
+		mv := mxj.Map(structs.Map(star.Repository))
+		if opts.Filter != nil {
+			if opts.Filter.Maps != nil {
+				res[key] = extractWithMaps(mv, opts.Filter.Maps)
+			}
 		}
-
-		sm := structs.Map(stars)
-	*/
-
-	var items []interface{}
-	for _, star := range stars {
-		items = append(items, structs.Map(star))
 	}
 
-	var mv mxj.Map
-	mxj.JsonUseNumber = true
-	mv = mxj.Map(map[string]interface{}{"items": items})
-
-	mxj.LeafUseDotNotation()
-	leafPaths := leafPathsPatterns(mv.LeafPaths())
-	log.Println("mv.LeafPaths(): ")
-	for _, p := range leafPaths {
-		log.Println("path:", p)
-	}
-
-	log.Fatal("test\n")
-
-	res := make(map[string]interface{}, len(stars))
-	for _, star := range stars {
-		key := star.Repository.GetFullName()
-		res[key] = star.GetStarredAt()
-	}
 	return res, response, nil
 }
-
-func leafPathsPatterns(input []string) []string {
-	var output []string
-	var re = regexp.MustCompile(`.([0-9]+)`)
-	for _, value := range input {
-		value = re.ReplaceAllString(value, `[*]`)
-		if !contains(output, value) {
-			output = append(output, value)
-		}
-	}
-	return dedup(output)
-}
-
-func contains(input []string, match string) bool {
-	for _, value := range input {
-		if value == match {
-			return true
-		}
-	}
-	return false
-}
-
-func dedup(input []string) []string {
-	var output []string
-	for _, value := range input {
-		if !contains(output, value) {
-			output = append(output, value)
-		}
-	}
-	return output
-}
-
-/*
-	ponzuClient := &http.Client{}
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	starStruct := structs.New(s)
-	for _, f := range starStruct.Fields() {
-		if f.IsEmbedded() {
-			continue
-		}
-		if f.Name() == "Tags" {
-			for i, v := range s.Tags {
-				writer.WriteField(fmt.Sprintf("tags.%d", i), v)
-			}
-			continue
-		}
-		if f.IsZero() == false {
-			writer.WriteField(f.Tag("json"), fmt.Sprint(f.Value()))
-		}
-	}
-*/
 
 func getUser(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
@@ -216,15 +139,16 @@ func getUser(g *Github, opts *Options) (map[string]interface{}, *github.Response
 	if user == nil {
 		return nil, response, errorMarshallingResponse
 	}
-	var fm map[string]interface{}
-	var err error
-	m := structs.Map(user)
-	fm, err = flatten.Flatten(m, "", flatten.DotStyle)
-	if err != nil {
-		log.Errorln("error: ", err.Error(), "debug=", runtime.WhereAmI())
-		return nil, response, err
+
+	res := make(map[string]interface{}, 0)
+	mv := mxj.Map(structs.Map(user))
+	if opts.Filter != nil {
+		if opts.Filter.Maps != nil {
+			res = extractWithMaps(mv, opts.Filter.Maps)
+		}
 	}
-	return fm, response, nil
+
+	return res, response, nil
 }
 
 func getRepo(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
@@ -259,15 +183,16 @@ func getRepo(g *Github, opts *Options) (map[string]interface{}, *github.Response
 	if repo == nil {
 		return nil, response, errorMarshallingResponse
 	}
-	var fm map[string]interface{}
-	var err error
-	m := structs.Map(repo)
-	fm, err = flatten.Flatten(m, "", flatten.DotStyle)
-	if err != nil {
-		log.Errorln("error: ", err.Error(), "debug=", runtime.WhereAmI())
-		return nil, response, err
+
+	res := make(map[string]interface{}, 0)
+	mv := mxj.Map(structs.Map(repo))
+	if opts.Filter != nil {
+		if opts.Filter.Maps != nil {
+			res = extractWithMaps(mv, opts.Filter.Maps)
+		}
 	}
-	return fm, response, nil
+
+	return res, response, nil
 }
 
 func getTopics(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
@@ -302,9 +227,19 @@ func getTopics(g *Github, opts *Options) (map[string]interface{}, *github.Respon
 	if topics == nil {
 		return nil, response, errorMarshallingResponse
 	}
-	fm := make(map[string]interface{}, 1)
-	fm["topics"] = topics
-	return fm, response, nil
+
+	res := make(map[string]interface{}, len(topics))
+	for _, topic := range topics {
+		key := fmt.Sprintf("topic-%d", topic)
+		row := make(map[string]interface{}, 4)
+		row["topic"] = topic
+		row["owner"] = opts.Target.Owner
+		row["name"] = opts.Target.Name
+		row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
+		res[key] = row
+	}
+
+	return res, response, nil
 }
 
 func getLatestSHA(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
@@ -342,8 +277,14 @@ func getLatestSHA(g *Github, opts *Options) (map[string]interface{}, *github.Res
 	if ref == nil {
 		return nil, response, errorMarshallingResponse
 	}
+
 	fm := make(map[string]interface{}, 1)
 	fm["sha"] = *ref.Object.SHA
+	fm["owner"] = opts.Target.Owner
+	fm["name"] = opts.Target.Name
+	fm["branch"] = opts.Target.Branch
+	fm["remote_repo_id"] = opts.Target.RepoId
+
 	return fm, response, nil
 }
 
@@ -379,15 +320,58 @@ func getTree(g *Github, opts *Options) (map[string]interface{}, *github.Response
 	if tree == nil {
 		return nil, response, errorMarshallingResponse
 	}
-	var fm map[string]interface{}
-	var err error
-	m := structs.Map(tree)
-	fm, err = flatten.Flatten(m, "", flatten.DotStyle)
-	if err != nil {
-		log.Errorln("error: ", err.Error(), "debug=", runtime.WhereAmI())
-		return nil, response, err
+
+	// filters := []string{"CMakeLists.txt", "Dockerfile", "docker-compose", "crane.yaml", "crane.yml", ""}
+
+	res := make(map[string]interface{}, 0)
+	for k, entry := range tree.Entries {
+		row := make(map[string]interface{}, 7)
+		if !filterTree(entry.GetPath()) {
+			continue
+		}
+		row["path"] = entry.GetPath()
+		row["owner"] = opts.Target.Owner
+		row["name"] = opts.Target.Name
+		row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
+		// row["sha"] = entry.GetSHA()
+		// row["size"] = entry.GetSize()
+		// row["url"] = entry.GetURL()
+		key := fmt.Sprintf("entry-%d", k)
+		res[key] = row
 	}
-	return fm, response, nil
+
+	return res, response, nil
+}
+
+var typeListFiles = map[string][]string{
+	"cmake":    []string{"CMakeLists.txt"},
+	"docker":   []string{"Dockerfile"},
+	"crystal":  []string{"Projectfile"},
+	"markdown": []string{".markdown", ".md", ".mdown", ".mkdn"},
+	"asciidoc": []string{".adoc", ".asc", ".asciidoc"},
+	"groovy":   []string{".groovy", ".gradle"},
+	"msbuild":  []string{".csproj", ".fsproj", ".vcxproj", ".proj", ".props", ".targets"},
+	"wiki":     []string{".mediawiki", ".wiki"},
+	"make":     []string{"gnumakefile", "Gnumakefile", "makefile", "Makefile"},
+	"mk":       []string{"mkfile"},
+	"ruby":     []string{"Gemfile", ".irbrc", "Rakefile"},
+	"toml":     []string{"Cargo.lock"},
+	"zsh":      []string{"zshenv", ".zshenv", "zprofile", ".zprofile", "zshrc", ".zshrc", "zlogin", ".zlogin", "zlogout", ".zlogout"},
+}
+
+var lang_path_map = map[string]string{
+	`rakefile`: `ruby`,
+	`/(Makefile|CMakeLists.txt|Imakefile|makepp|configure)$`: `make`,
+	`/config$`:     `conf`,
+	`/zsh/_[^/]+$`: `sh`,
+	`patch`:        `diff`,
+}
+
+func filterTree(filepath string) bool {
+	// data.DocumentationMatchers
+	// data.LanguagesByFilename
+	// data.LanguagesByInterpreter
+	return false
 }
 
 func getReadme(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
@@ -424,13 +408,133 @@ func getReadme(g *Github, opts *Options) (map[string]interface{}, *github.Respon
 	}
 	content, _ := readme.GetContent()
 	readme.Content = &content
-	var fm map[string]interface{}
-	var err error
-	m := structs.Map(readme)
-	fm, err = flatten.Flatten(m, "", flatten.DotStyle)
-	if err != nil {
-		log.Errorln("error: ", err.Error(), "debug=", runtime.WhereAmI())
-		return nil, response, err
+
+	res := make(map[string]interface{}, len(opts.Filter.Maps))
+	mv := mxj.Map(structs.Map(readme))
+	if opts.Filter != nil {
+		if opts.Filter.Maps != nil {
+			res = extractWithMaps(mv, opts.Filter.Maps)
+		}
 	}
-	return fm, response, err
+
+	res["owner"] = opts.Target.Owner
+	res["name"] = opts.Target.Name
+	res["remote_repo_id"] = opts.Target.RepoId
+
+	return res, response, nil
+}
+
+func extractWithMaps(mv mxj.Map, fields map[string]string) map[string]interface{} {
+	l := make(map[string]interface{}, len(fields))
+	for key, path := range fields {
+		var node []interface{}
+		var merr error
+		node, merr = mv.ValuesForPath(path)
+		if merr != nil {
+			log.Warnln("Error: ", merr)
+			continue
+		}
+		if len(node) > 1 {
+			l[key] = node
+		} else {
+			l[key] = node[0]
+		}
+	}
+	return l
+}
+
+func extractFlatten(mv mxj.Map, fields []string) map[string]interface{} {
+	l := make(map[string]interface{}, len(fields))
+	for _, path := range fields {
+		// var node []interface{}
+		// var merr error
+		node, _ := mv.ValuesForPath(path)
+		// if merr != nil {
+		//	log.Fatalln("Error: ", merr)
+		// }
+		if node != nil {
+			log.Warnln("node len=", len(node))
+			if len(node) > 2 {
+				l[path] = node
+			} else {
+				l[path] = node[0]
+			}
+		}
+	}
+	return l
+}
+
+func extractBlocks(mv mxj.Map, items string, fields map[string][]string) map[string]interface{} {
+	l := make(map[string]interface{}, len(fields))
+	for attr, field := range fields {
+		var keyPath string
+		var node []interface{}
+		if len(field) == 1 {
+			keyPath = fmt.Sprintf("%#s", field[0])
+			node, _ = mv.ValuesForPath(keyPath)
+			// log.Debugln("attr=", attr, "keyPath=", keyPath, "node=", node)
+		} else {
+			w := make(map[string]interface{}, len(field))
+			var merr error
+			for _, whl := range field {
+				keyParts := strings.Split(whl, ".")
+				keyName := keyParts[len(keyParts)-1]
+				keyPath = fmt.Sprintf("%#s", whl)
+				// log.Debugln("attr=", attr, "keyPath=", keyPath, "keyName=", keyName)
+				node, merr = mv.ValuesForPath(keyPath)
+				if merr != nil {
+					log.Fatalln("Error: ", merr)
+				}
+				if node != nil {
+					if len(node) == 1 {
+						w[keyName] = node[0]
+					} else if len(node) > 1 {
+						w[keyName] = node
+					}
+				}
+			}
+			l[attr] = w
+			continue
+		}
+		if len(node) == 1 {
+			l[attr] = node[0]
+			// log.Debugln("attr=", attr, "node[0]=", node[0])
+		} else if len(node) > 1 {
+			// log.Debugln("attr=", attr, "node=", node)
+			l[attr] = node
+		}
+	}
+	// log.Println(l)
+	return l
+}
+
+func leafPathsPatterns(input []string) []string {
+	var output []string
+	var re = regexp.MustCompile(`.([0-9]+)`)
+	for _, value := range input {
+		value = re.ReplaceAllString(value, `[*]`)
+		if !contains(output, value) {
+			output = append(output, value)
+		}
+	}
+	return dedup(output)
+}
+
+func contains(input []string, match string) bool {
+	for _, value := range input {
+		if value == match {
+			return true
+		}
+	}
+	return false
+}
+
+func dedup(input []string) []string {
+	var output []string
+	for _, value := range input {
+		if !contains(output, value) {
+			output = append(output, value)
+		}
+	}
+	return output
 }

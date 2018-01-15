@@ -28,4 +28,4 @@
 - https://github.com/tongson/gh_audit/blob/master/cmd/gh_audit/main.go
 - https://github.com/npateriya/machine-learn-repo-classification/blob/master/gitrepocrawl.go
 - https://github.com/lucassabreu/github-journaling-aggregator/blob/master/cmd/root.go
-- 
+- https://github.com/elastic/beats/blob/master/libbeat/common/mapstr.go

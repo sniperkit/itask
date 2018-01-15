@@ -71,10 +71,56 @@ type Profile struct {
 }
 
 type Target struct {
-	Owner  string
-	Name   string
-	Branch string
-	Ref    string
+	Owner   string
+	Name    string
+	Branch  string
+	Ref     string
+	OwnerId int
+	RepoId  int
+}
+
+type Output struct {
+	Disabled bool
+	Timeout  time.Duration
+}
+
+type Leafs struct {
+	Paths  bool
+	Nodes  bool
+	Values bool
+}
+
+type Schema struct {
+	Disabled bool
+	Leafs    Leafs
+}
+
+type Filter struct {
+	Disabled   bool
+	UsePrefix  bool
+	Validate   bool
+	MaxSize    uint
+	ExtFile    string
+	PrefixFile string
+	SuffixFile string
+	PrefixPath string
+	ChunkSize  int
+	Root       string
+	Leafs      Leafs
+	Multi      map[string]map[string]string
+	Blocks     map[string][]string
+	Paths      []string
+	Maps       map[string]string
+	Timeout    time.Duration
+}
+
+func NewFilter() *Filter {
+	export := &Filter{}
+	export.Leafs = Leafs{}
+	export.Blocks = make(map[string][]string, 0)
+	export.Maps = make(map[string]string, 0)
+	export.Multi = make(map[string]map[string]string, 0)
+	return export
 }
 
 type Options struct {
@@ -83,6 +129,7 @@ type Options struct {
 	Page                 int
 	PerPage              int
 	Target               *Target
+	Filter               *Filter
 	ActivityListStarred  *github.ActivityListStarredOptions
 	RepositoryContentGet *github.RepositoryContentGetOptions
 	Project              *github.ProjectOptions

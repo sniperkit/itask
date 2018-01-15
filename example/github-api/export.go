@@ -1,26 +1,26 @@
 package main
 
 import (
-	// "encoding/json"
-	"flag"
 	"fmt"
-	"math"
-	// "sort"
-	"strings"
 
-	// "github.com/yukithm/json2csv"
-	// "github.com/jehiah/json2csv"
-	"github.com/k0kubun/pp"
-	"github.com/tsak/concurrent-csv-writer"
-	"github.com/yukithm/json2csv"
-	// "github.com/agrison/go-tablib"
-
-	// "github.com/yukithm/json2csv"
-	// "github.com/yukithm/json2csv/jsonpointer"
+	// "github.com/Kesci/lazyskiplist"
+	// "github.com/hypersolid/duckmap"
 
 	"github.com/sniperkit/xtask/pkg"
-	// "github.com/sniperkit/xtask/plugin/format/json/json2map"
 	"github.com/sniperkit/xtask/util/runtime"
+	"github.com/sniperkit/xutil/plugin/format/convert/json2csv"
+
+	tablib "github.com/sniperkit/xutil/plugin/format/convert/tabular"
+	jsoniter "github.com/sniperkit/xutil/plugin/format/json"
+	cmap "github.com/sniperkit/xutil/plugin/map/multi"
+)
+
+var (
+	json                                    = jsoniter.ConfigCompatibleWithStandardLibrary
+	writers  map[string]*json2csv.CSVWriter = make(map[string]*json2csv.CSVWriter, 0)
+	sheets   map[string][]interface{}       = make(map[string][]interface{}, 0)
+	datasets map[string]*tablib.Dataset     = make(map[string]*tablib.Dataset, 0) // := NewDataset([]string{"firstName", "lastName"})
+	cds                                     = cmap.NewConcurrentMultiMap()
 )
 
 var headerStyleTable = map[string]json2csv.KeyStyle{
@@ -30,125 +30,56 @@ var headerStyleTable = map[string]json2csv.KeyStyle{
 	"dot-bracket": json2csv.DotBracketStyle,
 }
 
+var encoderCsv = func(result xtask.TaskResult) {
+	log.Println("exportCSV")
+}
+
 var processor = func(result xtask.TaskResult) {
 	if result.Error != nil {
 		log.Println("error: ", result.Error.Error(), "debug=", runtime.WhereAmI())
 	}
 	log.Println("response:", result.Result)
-	/*
-		for _, val := range result.Result {
-			log.Println("response:", val.Interface())
-		}
-	*/
 }
 
-func get_value(data map[string]interface{}, keyparts []string) string {
-	if len(keyparts) > 1 {
-		subdata, _ := data[keyparts[0]].(map[string]interface{})
-		return get_value(subdata, keyparts[1:])
-	} else if v, ok := data[keyparts[0]]; ok {
-		switch v.(type) {
-		case nil:
-			return ""
-		case float64:
-			f, _ := v.(float64)
-			if math.Mod(f, 1.0) == 0.0 {
-				return fmt.Sprintf("%d", int(f))
-			} else {
-				return fmt.Sprintf("%f", f)
+func exportCSV(eg string, input interface{}) xtask.Tsk {
+	if writers[eg] == nil {
+		writers[eg] = newWriterJSON2CSV(eg)
+	}
+
+	// t1.Interface().(time.Time)
+	// cds.Append("repos", repo)
+	return func() *xtask.TaskResult {
+		return &xtask.TaskResult{}
+	}
+}
+
+func flushAllWriters() {
+	for k, w := range writers {
+		if w != nil {
+			data, _ := cds.Get(k)
+			results, err := json2csv.JSON2CSV(data)
+			if err != nil {
+				log.Fatalln("JSON2CSV error:", err)
 			}
-		default:
-			return fmt.Sprintf("%+v", v)
+			w.WriteCSV(results)
+			w.Flush()
+			if err := w.Error(); err != nil {
+				log.Fatalln("Error: ", err)
+			}
 		}
 	}
-	return ""
+	cds.Clear()
 }
 
-type LineReader interface {
-	ReadBytes(delim byte) (line []byte, err error)
-}
-
-type StringArray []string
-
-func (a *StringArray) Set(s string) error {
-	for _, ss := range strings.Split(s, ",") {
-		*a = append(*a, ss)
-	}
-	return nil
-}
-
-func (a *StringArray) String() string {
-	return fmt.Sprint(*a)
-}
-
-var paramTest = "name,owner.login,created_at"
-
-var writers map[string]*ccsv.CsvWriter = make(map[string]*ccsv.CsvWriter, 0)
-
-var exportInterface = func(ti xtask.TaskInfo) {
-	writer := "test"
-	outputFile := fmt.Sprintf("./shared/data/csv/%s.csv", writer)
-	if writers[writer] == nil {
-		w, err := ccsv.NewCsvWriter(outputFile)
-		if err != nil {
-			panic("Could not open output file for writing")
-		}
-		writers[writer] = w
-	}
-	pp.Println("Result: ", ti.Result.Result)
-	/*
-		pp.Println("Result: ", ti.Result.Result)
-
-		results, err := json2csv.JSON2CSV(ti.Result.Result)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if len(results) == 0 {
-			return
-		}
-		// pp.Println("results: ", results)
-	*/
-}
-
-var exportMap = func(ti xtask.TaskInfo) {
-	writer := "test"
-	outputFile := fmt.Sprintf("./shared/data/csv/%s.csv", writer)
-	if writers[writer] == nil {
-		w, err := ccsv.NewCsvWriter(outputFile)
-		if err != nil {
-			panic("Could not open output file for writing")
-		}
-		writers[writer] = w
-	}
-	results, err := json2csv.JSON2CSV(ti.Result.Result)
+// add prefixPath, headerStyleTable, transpose
+func newWriterJSON2CSV(basename string) *json2csv.CSVWriter {
+	outputFile := fmt.Sprintf("./shared/data/export/%s.csv", basename)
+	log.Debugln("instanciate new concurrent writer to output file=", outputFile)
+	w, err := json2csv.NewCSVWriterToFile(outputFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not open `%s` for writing", outputFile)
 	}
-	if len(results) == 0 {
-		return
-	}
-	pp.Println("results: ", results)
+	w.HeaderStyle = headerStyleTable["dot"]
+	w.NoHeaders(true)
+	return w
 }
-
-func newWriter(writer string) {
-	outputFile := fmt.Sprintf("./shared/data/csv/%s.csv", writer)
-	if writers == nil {
-		writers = make(map[string]*ccsv.CsvWriter, 0)
-	}
-	if writers[writer] == nil {
-		w, err := ccsv.NewCsvWriter(outputFile)
-		if err != nil {
-			panic("Could not open `sample.csv` for writing")
-		}
-		writers[writer] = w
-	}
-}
-
-var (
-	inputFile   = flag.String("i", "", "/path/to/input.json (optional; default is stdin)")
-	outputFile  = flag.String("o", "", "/path/to/output.json (optional; default is stdout)")
-	outputDelim = flag.String("d", ",", "delimiter used for output values")
-	printHeader = flag.Bool("p", true, "prints header to output")
-)
-
-var encoderCsv = func(result xtask.TaskResult) { log.Println("exportCSV") }

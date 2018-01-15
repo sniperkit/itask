@@ -15,11 +15,11 @@ import (
 
 	"github.com/anacrolix/sync"
 	"github.com/boz/go-throttle"
-	"github.com/k0kubun/pp"
 	"go.uber.org/ratelimit"
+	// "github.com/k0kubun/pp"
 	// "github.com/VividCortex/robustly"
 	// "github.com/eapache/go-resiliency/semaphore"
-	//"github.com/eapache/channels"
+	// "github.com/eapache/channels"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/sniperkit/xtask/plugin/counter"
@@ -72,24 +72,31 @@ func (dnfe *DepNotFoundError) Error() string {
 
 // A Task is a function called with no arguments that returns an error. If
 // variable information is required, consider providing a closure.
-type Tsk func() *TaskInfo // , time.Duration
+// type Tsk func() *TaskInfo // , time.Duration
+type Tsk func() *TaskResult // , time.Duration
+
+type TaskGroup struct {
+	Id       int
+	Name     string
+	Disabled bool
+	Paused   bool
+}
 
 // task info holds run-time information related to a task identified by taskInfo.name.
 type TaskInfo struct {
-	id      int
-	name    string
-	hash    uuid.UUID
-	task    Tsk // The task itself.
-	fn      interface{}
-	args    []interface{}
-	handler reflect.Value
-	params  []reflect.Value
-	Result  *TaskResult
-	err     error // Stores error on failure.
-	done    bool  // Prevents running a task more than once.
-	// lock         *sync.RWMutex // Controls access to this task.
-	mux *sync.Mutex // Controls access to this task.
-	// once         sync.Once   // Prevents running a task more than once.
+	Id           int
+	Name         string
+	Group        *string
+	Hash         uuid.UUID
+	Result       *TaskResult
+	task         Tsk // The task itself.
+	fn           interface{}
+	args         []interface{}
+	handler      reflect.Value
+	params       []reflect.Value
+	err          error       // Stores error on failure.
+	done         bool        // Prevents running a task more than once.
+	mux          *sync.Mutex // Controls access to this task.
 	wait         *sync.WaitGroup
 	continueWith *list.List
 	delay        time.Duration
@@ -123,7 +130,8 @@ func GetTaskFuncName(t *Task) string {
 
 func (tr *Tasker) ContinueWith2(name string, deps []string, task Tsk) *TaskInfo {
 	defer funcTrack(time.Now())
-	tr.Add(name, deps, task)
+
+	tr.Add(name, "jj", deps, task)
 	err_ch := make(chan error)
 	tr.runTask(name, err_ch)
 	ti := tr.tis[name]
@@ -136,57 +144,14 @@ func (tr *Tasker) ContinueWith2(name string, deps []string, task Tsk) *TaskInfo 
 	return ti
 }
 
-// ContinueWithHandler
-type ContinueTaskWithHandler func(TaskInfo)
-
-// ContinueWithHandler
-type ContinueTaskWithFunc func(TaskInfo)
-
-// ContinueWithHandler
-type ContinueTaskWithTask func(TaskInfo)
-
-// type ContinueWithHandler func(TaskResult);
-
-// ContinueWithFunc
-func (ti *TaskInfo) ContinueWithFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
-	defer funcTrack(time.Now())
-	ti.lock()
-	defer ti.unlock()
-
-	handler := newTaskFunc(name, fn, args...)
-	ti.continueWith.PushFront(handler)
-	return ti
-}
-
-/*
-// ContinueWithTask
-func (ti *TaskInfo) ContinueWithHandler(handler ContinueTaskWithTask) *TaskInfo {
-	defer funcTrack(time.Now())
-	ti.lock()
-	defer ti.unlock()
-
-	ti.continueWith.PushFront(handler)
-	return ti
-}
-*/
-
-// Delay
-func (ti *TaskInfo) Delay(delay time.Duration) *TaskInfo {
-	defer funcTrack(time.Now())
-	ti.lock()
-	defer ti.unlock()
-
-	ti.delay = delay
-	return ti
-}
-
 func newTaskFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
 	defer funcTrack(time.Now())
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	return &TaskInfo{
-		// task:         task,
-		id:           random.Intn(10000),
-		hash:         uuid.NewV4(),
+		Id:           random.Intn(10000),
+		Hash:         uuid.NewV4(),
+		Name:         name,
 		wait:         &sync.WaitGroup{},
 		mux:          &sync.Mutex{},
 		fn:           fn,
@@ -194,7 +159,6 @@ func newTaskFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
 		repeat:       false,
 		continueWith: list.New(),
 		delay:        0 * time.Second,
-		name:         name,
 		nextRun:      time.Now(),
 		counters:     counter.NewOc(),
 		rate:         &rate.RateLimiter{},
@@ -209,9 +173,12 @@ func newTaskFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
 
 func newTaskInfo(task Tsk) *TaskInfo {
 	defer funcTrack(time.Now())
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	return &TaskInfo{
 		task:         task,
+		Id:           random.Intn(10000),
+		Hash:         uuid.NewV4(),
 		done:         false,
 		err:          nil,
 		continueWith: list.New(),
@@ -224,14 +191,13 @@ func newTaskInfo(task Tsk) *TaskInfo {
 		lowlink:      -1,
 		on_stack:     false,
 		Result:       &TaskResult{Error: nil, Result: nil},
-		// result: &TaskResult{},
-		// wait:     &sync.WaitGroup,
 	}
 }
 
 type Tasker struct {
-	id   int
-	name string
+	Id      int
+	Name    string
+	Cluster string
 
 	// Map of taskInfo's indexed by task name.
 	tis  map[string]*TaskInfo
@@ -307,8 +273,9 @@ func NewTasker(n int) (*Tasker, error) {
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	hash := uuid.NewV4()
+
 	tr := &Tasker{
-		id:         random.Intn(10000),
+		Id:         random.Intn(10000),
 		tis:        make(map[string]*TaskInfo),
 		dep_graph:  make(map[string][]string),
 		semaphore:  semaphore,
@@ -323,8 +290,6 @@ func NewTasker(n int) (*Tasker, error) {
 		mux:        &sync.Mutex{},
 		limiter:    NewLimiter(hash.String()),
 		uberRate:   ratelimit.New(n), // per second
-		// prev:       time.Time,
-		// list:       list.New(),
 	}
 
 	return tr, nil
@@ -339,7 +304,7 @@ func NewTasker(n int) (*Tasker, error) {
 // may be nil, but task may not.
 //
 // An error is returned if name is not unique.
-func (tr *Tasker) Add(name string, deps []string, task Tsk) *TaskInfo {
+func (tr *Tasker) Add(name string, group string, deps []string, task Tsk) *TaskInfo {
 	defer funcTrack(time.Now())
 
 	tr.mux.Lock()
@@ -363,8 +328,14 @@ func (tr *Tasker) Add(name string, deps []string, task Tsk) *TaskInfo {
 	tr.dep_graph[name] = deps
 
 	tr.tis[name].Result = &TaskResult{Name: name}
+	tr.tis[name].Group = &group
+
 	return tr.tis[name]
 }
+
+type ContinueTaskWithHandler func(*TaskInfo)
+type ContinueTaskWithFunc func(*TaskInfo)
+type ContinueTaskWithTask func(*TaskInfo)
 
 // ContinueWithTask
 func (ti *TaskInfo) ContinueWithHandler(handler ContinueTaskWithTask) *TaskInfo {
@@ -373,6 +344,29 @@ func (ti *TaskInfo) ContinueWithHandler(handler ContinueTaskWithTask) *TaskInfo 
 	defer ti.unlock()
 
 	ti.continueWith.PushFront(handler)
+	// pp.Println("TaskInfo:\n", ti)
+	return ti
+}
+
+// ContinueWithFunc
+func (ti *TaskInfo) ContinueWithFunc(name string, fn interface{}, args ...interface{}) *TaskInfo {
+	defer funcTrack(time.Now())
+	ti.lock()
+	defer ti.unlock()
+
+	handler := newTaskFunc(name, fn, args...)
+	ti.continueWith.PushFront(handler)
+	return ti
+}
+
+// Delay
+func (ti *TaskInfo) Delay(delay time.Duration) *TaskInfo {
+	defer funcTrack(time.Now())
+
+	ti.lock()
+	defer ti.unlock()
+
+	ti.delay = delay
 	return ti
 }
 
@@ -399,8 +393,8 @@ func (t Tsk) PostProcess() Tsk {
 		return nil
 	}
 
-	pp.Println(f)
-	pp.Println(t)
+	// pp.Println(f)
+	// pp.Println(t)
 	// var res *TaskInfo
 	// res = t
 	// LogWithFields(Fields{"Tsk": t}).Println("*Tsk.PostProcess()...")
@@ -423,8 +417,8 @@ func (t *TaskInfo) PostProcess() *TaskInfo {
 
 func (tr *Tasker) Tachymeter() *Tasker {
 	defer funcTrack(time.Now())
-	// tr.mux.Lock()
-	// defer tr.mux.Unlock()
+	tr.mux.Lock()
+	defer tr.mux.Unlock()
 
 	size := tr.Count()
 
@@ -696,13 +690,19 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 
 	output := ti.task()
 
+	// ti.Result.Name = output.Result.Name
+	ti.Result.Result = output.Result
+	// ti.Result.Output = output.Output
+	ti.Result.Error = output.Error
+	ti.err = ti.Result.Error
+
 	go func() {
 		defer func() {
 			ti.done = true
 			if ti.continueWith != nil {
 				for element := ti.continueWith.Back(); element != nil; element = element.Prev() {
 					if tt, ok := element.Value.(ContinueTaskWithTask); ok {
-						tt(*output)
+						tt(ti)
 					}
 
 				}
@@ -712,11 +712,6 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 	}()
 
 	// robustly.Run(func() { ti.task() }, nil)
-
-	ti.Result.Name = output.Result.Name
-	ti.Result.Result = output.Result.Result
-	ti.Result.Error = output.Result.Error
-	ti.err = ti.Result.Error
 	err_ch <- ti.err
 }
 

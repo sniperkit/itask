@@ -38,6 +38,16 @@ func newFact() {
 }
 
 /*
+	factdb.Let("dog").Has("name", "hou")
+	factdb.Let("cat").Has("white", "black")
+	store.AddQuad(quad.Make(siteURL, "type", "site", nil))
+	store.AddQuad(quad.Make(siteURL, "name", "Red Hat Developers", nil))
+	store.AddQuad(quad.Make(siteURL, "allows protocol", "http", nil))
+	store.AddQuad(quad.Make(siteURL, "allows protocol", "https", nil))
+	store.AddQuad(quad.Make(siteURL, "scores", 72, nil))
+*/
+
+/*
 func newGraph() {
 	//graph cayley.NewGraph(name, dbpath, opts)
 }
