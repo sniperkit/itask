@@ -1,0 +1,235 @@
+Keywords
+search terms
+github stats
+github statistics
+split csv import max row
+Automatic Keyphrase Extraction Task 
+
+
+group tag gorm
+parent tag gorm
+hierachical tag gorm
+corpus gorm
+find rules in data
+
+news syndication
+data syndication
+data import
+bulk import
+batch import
+
+
+indeed gorm
+indeed scraper
+
+github scraper 
+applicant gorm 
+
+developer gorm
+Keywords
+search terms
+github stats
+github statistics
+
+concurrent data structure
+runes
+
+curated list of
+lexer generators
+
+Query Term Analyzer
+lexical dictionary
+# http://qtanalyzer.codeplex.com/
+Term Synonym Pairs Analyzer
+xapian
+
+lexers
+lexical analyzers 
+lexical scanners
+
+MarkdownTOC
+
+Coreference resolution
+Entity linking (aka named entity normalization, entity disambiguation)
+Information extraction
+knowledge extraction
+controlled vocabulary
+Onomastics
+Record linkage
+Smart tag (Microsoft)
+Terminology extraction
+
+browsing, search and filtering recent arxiv submissions 
+entity extraction results with information from Wikipedia.
+
+# https://github.com/karpathy/arxiv-sanity-preserver#processing-pipeline
+machine learning stacking
+
+Named Entity Recognition
+POS Tagging
+Dependency Parsing
+deep-neural-networks
+sequence-classification
+named-entity-recognition
+nlp
+question-answering
+named-entity-recognition
+verbnet
+Extracting Concepts from text
+contextual categories defined by the IAB Quality Assurance Guidelines (QAG) Taxonomy
+
+Name Identification
+Name Identification and Aggregation
+StackOverflow Research Papers
+
+StackOverflow librairies
+StackOverflow tags
+
+license
+copyright
+packages
+dependencies
+foss
+license-management
+spdx
+discovery
+open-source
+package-manager
+scan
+origin
+provenance
+license-scan
+package-scan
+copyright-scan
+licensing
+
+split csv import max row
+Automatic Keyphrase Extraction Task 
+
+topological field prediction
+	# https://github.com/danieldk/toponn
+
+dpar is a transition-based dependency parser in Go
+transition-based dependency parser 
+vec2web
+Dependency parser using feed-forward neural nets
+
+corpus analysis tool
+Lexical analysis: Word and text tokenizer
+n-gram and collocations
+Part-of-speech tagger
+Tree model and Text chunker for capturing
+Named-entity recognition
+
+# go-routines
+# ref. https://medium.com/@nikolay.bystritskiy/how-i-tried-to-do-things-asynchronously-in-golang-40e0c1a06a66
+# https://github.com/cxww107/asyncwork
+# https://github.com/ReactiveGo/rx/blob/master/example/helloworld/rx.go
+# https://github.com/muesli/beehive/blob/master/bees/githubbee/events.go
+# 
+sync waitgroup
+worker task 
+task function
+pipeline
+rx 
+reactive pattern
+events
+events channel
+events go-routines
+eventChan
+workers
+merge
+
+group tag gorm
+parent tag gorm
+hierachical tag gorm
+corpus gorm
+
+find rules in data
+
+goroutines execution order based on dependencies
+wide list of tasks asynchronously
+
+news syndication
+data syndication
+data import
+bulk import
+batch import
+
+extract useful text from a HTML document
+extract key phrases from a text
+
+automatic dependency discovery
+arbitrary C++ source tree
+arbitrary source tree
+
+dependency discovery source tree
+dependency discovery 
+file split
+
+indeed gorm
+indeed scraper
+
+github scraper 
+applicant gorm 
+
+developer gorm
+
+Name Entity Recognition
+Named Entity Recognition
+
+Name Entity Recognition DNN
+Hierarchical Attention Networks for Document Classification
+Named Entity Recognition DNN
+
+Hierarchical Attention Networks
+attention mechanism for text classification tasks
+word2vec
+fasttext
+scikit-learn
+machine-learning
+neural-network
+gensim
+text-mining
+text-classification
+supervised-learning
+online-learning
+word-embeddings
+shallow-learning
+Document Classification
+
+Web Crawling, Distributed System, Information Integration, Information Retrieval, Data Mining, Deep Learning and NLP
+
+Pre-trained word vectors
+Pre-trained word vectors domain specific
+https://data.world/vmarkovtsev/452-m-commits-on-github
+
+Artificial Intelligence real-time assisted programming
+real-time assisted programming
+Achieve AI that is self-programming and self-learning in its environment
+self-learning environment
+self-programming environment
+self-programming and self-learning environment
+self-programming and self-learning
+build representation source code
+build representation developers
+build representation projects
+probabilistic data structures
+
+copyright case classification
+deeplycurious
+deeply curious
+
+lsh
+lsh-forest
+paper
+vldb
+lsh-ensemble
+containment
+nearest-neighbor-search
+containment-search
+approximate-nearest-neighbor-search
+
+application summaries predict research subjects
+predict research subjects
+summaries predict research subjects

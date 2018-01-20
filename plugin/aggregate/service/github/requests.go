@@ -3,18 +3,28 @@ package github
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/anacrolix/sync"
+	"github.com/cnf/structhash"
 	"github.com/google/go-github/github"
-	"github.com/src-d/enry/data"
+
+	// "github.com/anacrolix/sync"
+	// "github.com/viant/toolbox"
+	// "github.com/thoas/go-funk"
+	// "github.com/tuvistavie/structomap"
+	// "github.com/src-d/enry/data"
 
 	"github.com/sniperkit/xtask/util/runtime"
 	"github.com/sniperkit/xutil/plugin/format/convert/mxj/pkg"
 	"github.com/sniperkit/xutil/plugin/struct"
 )
+
+// Analyzing trends on Github using topic models and machine learning.
+
+var wg sync.WaitGroup
 
 func (g *Github) counterTrack(name string, incr int) {
 	go func() {
@@ -28,400 +38,542 @@ func (g *Github) GetFunc(entity string, opts *Options) (map[string]interface{}, 
 	if g.client == nil {
 		g.client = getClient(g.ctoken)
 	}
+
+	if exceededRateLimit(g.client) {
+		// g.mu.Lock()
+		// defer g.mu.Unlock()
+		log.Debugln("new client required as exceeded rate limit detected for the current token, token.old=", g.ctoken, "debug", runtime.WhereAmI())
+		/*
+			go func() {
+				g.wg.Add(1)
+				defer g.wg.Done()
+
+				g.Reclaim((*response).Reset.Time)
+				// g.wg.Done()
+			}()
+		*/
+		g = g.manager.Fetch()
+		// g.mu.Unlock()
+	}
+
 	switch entity {
 	case "getStars":
 		return getStars(g, opts)
+
 	case "getUser":
 		return getUser(g, opts)
+
 	case "getRepo":
 		return getRepo(g, opts)
+
 	case "getReadme":
 		return getReadme(g, opts)
+
 	case "getTree":
 		return getTree(g, opts)
+
 	case "getTopics":
 		return getTopics(g, opts)
+
 	case "getLatestSHA":
 		return getLatestSHA(g, opts)
+
 	}
+
 	return nil, nil, nil
+}
+
+func nextClient(g *Github, response *github.Response) *Github {
+
+	log.Warnln("new client required, token.old=", g.ctoken, "debug", runtime.WhereAmI())
+
+	go func() {
+		g.wg.Add(1)
+		defer g.wg.Done()
+
+		g.Reclaim((*response).Reset.Time)
+		// g.wg.Done()
+	}()
+
+	// g = g.manager.Fetch()
+	// log.Errorln("token.new=", g.ctoken)
+	return g.manager.Fetch()
+}
+
+func (g *Github) nextClient(response *github.Response) *Github {
+
+	log.Warnln("new client required, token.old=", g.ctoken, "debug", runtime.WhereAmI())
+
+	go func() {
+		g.wg.Add(1)
+		defer g.wg.Done()
+
+		log.Println("g=", g != nil, "response=", response != nil)
+		g.Reclaim((*response).Reset.Time)
+	}()
+
+	return g.manager.Fetch()
 }
 
 func getStars(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var stars []*github.StarredRepository
-	var response *github.Response
+	var (
+		stars    []*github.StarredRepository
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
 
-	get := func() error {
-		var err error
-		stars, response, err = g.client.Activity.ListStarred(
-			context.Background(),
-			opts.Runner,
-			&github.ActivityListStarredOptions{
-				Sort:      "updated",
-				Direction: "desc", // desc
-				ListOptions: github.ListOptions{
-					Page:    opts.Page,
-					PerPage: opts.PerPage,
+request:
+	{
+		get := func() error {
+			var err error
+			stars, response, err = g.client.Activity.ListStarred(
+				context.Background(),
+				opts.Runner,
+				&github.ActivityListStarredOptions{
+					Sort:      "updated",
+					Direction: "desc",
+					ListOptions: github.ListOptions{
+						Page:    opts.Page,
+						PerPage: opts.PerPage,
+					},
 				},
-			},
-		)
+			)
+			if response == nil {
+				return err
+			}
+
+			return err
+		}
+
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
+		}
 		if response == nil {
-			return err
+			err = errorResponseIsNull
+			goto finish
 		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				log.Warnln("new client required, debug=", runtime.WhereAmI())
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				newClient := g.getClient(newToken)
-				g.client = newClient
-			}
-			return err
+		if stars == nil {
+			err = errorMarshallingResponse
+			goto finish
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if stars == nil {
-		return nil, response, errorMarshallingResponse
-	}
 
-	res := make(map[string]interface{}, 0)
-	for _, star := range stars {
-		key := fmt.Sprintf("%s/%d", star.Repository.GetFullName(), star.Repository.GetID())
-		mv := mxj.Map(structs.Map(star.Repository))
-		if opts.Filter != nil {
-			if opts.Filter.Maps != nil {
-				res[key] = extractWithMaps(mv, opts.Filter.Maps)
+		for _, star := range stars {
+			key := fmt.Sprintf("%s/%d/%d", star.Repository.GetFullName(), star.Repository.GetID(), star.Repository.GetStargazersCount())
+			mv := mxj.Map(structs.Map(star.Repository))
+			if opts.Filter != nil {
+				if opts.Filter.Maps != nil {
+					res[key] = extractWithMaps(mv, opts.Filter.Maps)
+				}
 			}
 		}
+		goto finish
 	}
 
+finish:
 	return res, response, nil
+
 }
 
 func getUser(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var user *github.User
-	var response *github.Response
-	get := func() error {
-		var err error
-		user, response, err = g.client.Users.Get(context.Background(), opts.Target.Owner)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				log.Warnln("new client required, debug=", runtime.WhereAmI())
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				g.client = g.getClient(newToken)
+	var (
+		user     *github.User
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			user, response, err = g.client.Users.Get(context.Background(), opts.Target.Owner)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if user == nil {
-		return nil, response, errorMarshallingResponse
-	}
 
-	res := make(map[string]interface{}, 0)
-	mv := mxj.Map(structs.Map(user))
-	if opts.Filter != nil {
-		if opts.Filter.Maps != nil {
-			res = extractWithMaps(mv, opts.Filter.Maps)
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
 		}
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+		if user == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		mv := mxj.Map(structs.Map(user))
+		if opts.Filter != nil {
+			if opts.Filter.Maps != nil {
+				res = extractWithMaps(mv, opts.Filter.Maps)
+			}
+		}
+		res["request_url"] = response.Request.URL.String()
+		res["object_hash"] = fmt.Sprintf("%x", structhash.Sha1(res, 1))
+		goto finish
 	}
 
+	/*
+	   changeClient:
+	   	{
+	   		g = g.nextClient(response)
+	   		// g = nextClient(g, response)
+	   		goto request
+	   	}
+	*/
+
+finish:
 	return res, response, nil
 }
 
 func getRepo(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var repo *github.Repository
-	var response *github.Response
-	get := func() error {
-		var err error
-		repo, response, err = g.client.Repositories.Get(context.Background(), opts.Target.Owner, opts.Target.Name)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				log.Warnln("new client required, debug=", runtime.WhereAmI())
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				g.client = g.getClient(newToken)
+	var (
+		repo     *github.Repository
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			repo, response, err = g.client.Repositories.Get(context.Background(), opts.Target.Owner, opts.Target.Name)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if repo == nil {
-		return nil, response, errorMarshallingResponse
-	}
 
-	res := make(map[string]interface{}, 0)
-	mv := mxj.Map(structs.Map(repo))
-	if opts.Filter != nil {
-		if opts.Filter.Maps != nil {
-			res = extractWithMaps(mv, opts.Filter.Maps)
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
 		}
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+		if repo == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		mv := mxj.Map(structs.Map(repo))
+		if opts.Filter != nil {
+			if opts.Filter.Maps != nil {
+				res = extractWithMaps(mv, opts.Filter.Maps)
+			}
+		}
+		res["request_url"] = response.Request.URL.String()
+		res["object_hash"] = fmt.Sprintf("%x", structhash.Sha1(res, 1))
+		goto finish
 	}
 
-	return res, response, nil
+finish:
+	return res, response, err
 }
 
 func getTopics(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var topics []string
-	var response *github.Response
-	get := func() error {
-		var err error
-		topics, response, err = g.client.Repositories.ListAllTopics(context.Background(), opts.Target.Owner, opts.Target.Name)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				log.Warnln("new client required, oldToken=", oldToken, ", newToken:", newToken, " debug=", runtime.WhereAmI())
-				g.client = g.getClient(newToken)
+	var (
+		topics   []string
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			topics, response, err = g.client.Repositories.ListAllTopics(context.Background(), opts.Target.Owner, opts.Target.Name)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if topics == nil {
-		return nil, response, errorMarshallingResponse
+
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
+		}
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+		if topics == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		for _, topic := range topics {
+			key := fmt.Sprintf("topic-%d", topic)
+			row := make(map[string]interface{}, 0)
+			row["topic"] = topic
+			row["owner"] = opts.Target.Owner
+			row["name"] = opts.Target.Name
+			row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
+			row["request_url"] = response.Request.URL.String()
+			res[key] = row
+		}
+		goto finish
 	}
 
-	res := make(map[string]interface{}, len(topics))
-	for _, topic := range topics {
-		key := fmt.Sprintf("topic-%d", topic)
-		row := make(map[string]interface{}, 4)
-		row["topic"] = topic
-		row["owner"] = opts.Target.Owner
-		row["name"] = opts.Target.Name
-		row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
-		res[key] = row
-	}
-
+finish:
 	return res, response, nil
 }
 
 func getLatestSHA(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var ref *github.Reference
-	var response *github.Response
-	get := func() error {
-		var err error
-		if opts.Target.Branch == "" {
-			opts.Target.Branch = "master"
-		}
-		ref, response, err = g.client.Git.GetRef(context.Background(), opts.Target.Owner, opts.Target.Name, "refs/heads/"+opts.Target.Branch)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				log.Warnln("new client required, oldToken=", oldToken, ", newToken:", newToken, " debug=", runtime.WhereAmI())
-				g.client = g.getClient(newToken)
+	var (
+		ref      *github.Reference
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			if opts.Target.Branch == "" {
+				opts.Target.Branch = "master"
+			}
+			ref, response, err = g.client.Git.GetRef(context.Background(), opts.Target.Owner, opts.Target.Name, "refs/heads/"+opts.Target.Branch)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if ref == nil {
-		return nil, response, errorMarshallingResponse
+
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
+		}
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+		if ref == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		res["sha"] = *ref.Object.SHA
+		res["owner"] = opts.Target.Owner
+		res["name"] = opts.Target.Name
+		res["branch"] = opts.Target.Branch
+		res["remote_repo_id"] = opts.Target.RepoId
+		res["request_url"] = response.Request.URL.String()
+		res["object_hash"] = fmt.Sprintf("%x", structhash.Sha1(res, 1))
+		goto finish
 	}
 
-	fm := make(map[string]interface{}, 1)
-	fm["sha"] = *ref.Object.SHA
-	fm["owner"] = opts.Target.Owner
-	fm["name"] = opts.Target.Name
-	fm["branch"] = opts.Target.Branch
-	fm["remote_repo_id"] = opts.Target.RepoId
-
-	return fm, response, nil
+finish:
+	return res, response, nil
 }
 
 func getTree(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var tree *github.Tree
-	var response *github.Response
-	get := func() error {
-		var err error
-		tree, response, err = g.client.Git.GetTree(context.Background(), opts.Target.Owner, opts.Target.Name, opts.Target.Ref, true)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				log.Warnln("new client required, oldToken=", oldToken, ", newToken:", newToken, " debug=", runtime.WhereAmI())
-				g.client = g.getClient(newToken)
+	var (
+		tree     *github.Tree
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			tree, response, err = g.client.Git.GetTree(context.Background(), opts.Target.Owner, opts.Target.Name, opts.Target.Ref, true)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if tree == nil {
-		return nil, response, errorMarshallingResponse
-	}
 
-	// filters := []string{"CMakeLists.txt", "Dockerfile", "docker-compose", "crane.yaml", "crane.yml", ""}
-
-	res := make(map[string]interface{}, 0)
-	for k, entry := range tree.Entries {
-		row := make(map[string]interface{}, 7)
-		if !filterTree(entry.GetPath()) {
-			continue
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
 		}
-		row["path"] = entry.GetPath()
-		row["owner"] = opts.Target.Owner
-		row["name"] = opts.Target.Name
-		row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
-		// row["sha"] = entry.GetSHA()
-		// row["size"] = entry.GetSize()
-		// row["url"] = entry.GetURL()
-		key := fmt.Sprintf("entry-%d", k)
-		res[key] = row
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+		if tree == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		// filters := []string{"CMakeLists.txt", "Dockerfile", "docker-compose", "crane.yaml", "crane.yml", ""}
+		for k, entry := range tree.Entries {
+			row := make(map[string]interface{}, 5)
+			// if !filterTree(entry.GetPath()) {
+			//	continue
+			//}
+			row["path"] = entry.GetPath()
+			row["owner"] = opts.Target.Owner
+			row["name"] = opts.Target.Name
+			row["remote_id"] = strconv.Itoa(opts.Target.RepoId)
+			row["request_url"] = response.Request.URL.String()
+			// row["sha"] = entry.GetSHA()
+			// row["size"] = entry.GetSize()
+			// row["url"] = entry.GetURL()
+			key := fmt.Sprintf("entry-%d", k)
+			res[key] = row
+		}
+		goto finish
 	}
 
+finish:
 	return res, response, nil
-}
-
-var typeListFiles = map[string][]string{
-	"cmake":    []string{"CMakeLists.txt"},
-	"docker":   []string{"Dockerfile"},
-	"crystal":  []string{"Projectfile"},
-	"markdown": []string{".markdown", ".md", ".mdown", ".mkdn"},
-	"asciidoc": []string{".adoc", ".asc", ".asciidoc"},
-	"groovy":   []string{".groovy", ".gradle"},
-	"msbuild":  []string{".csproj", ".fsproj", ".vcxproj", ".proj", ".props", ".targets"},
-	"wiki":     []string{".mediawiki", ".wiki"},
-	"make":     []string{"gnumakefile", "Gnumakefile", "makefile", "Makefile"},
-	"mk":       []string{"mkfile"},
-	"ruby":     []string{"Gemfile", ".irbrc", "Rakefile"},
-	"toml":     []string{"Cargo.lock"},
-	"zsh":      []string{"zshenv", ".zshenv", "zprofile", ".zprofile", "zshrc", ".zshrc", "zlogin", ".zlogin", "zlogout", ".zlogout"},
-}
-
-var lang_path_map = map[string]string{
-	`rakefile`: `ruby`,
-	`/(Makefile|CMakeLists.txt|Imakefile|makepp|configure)$`: `make`,
-	`/config$`:     `conf`,
-	`/zsh/_[^/]+$`: `sh`,
-	`patch`:        `diff`,
-}
-
-func filterTree(filepath string) bool {
-	// data.DocumentationMatchers
-	// data.LanguagesByFilename
-	// data.LanguagesByInterpreter
-	return false
 }
 
 func getReadme(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
 	defer funcTrack(time.Now())
 
-	var readme *github.RepositoryContent
-	var response *github.Response
-	get := func() error {
-		var err error
-		readme, response, err = g.client.Repositories.GetReadme(context.Background(), opts.Target.Owner, opts.Target.Name, nil)
-		if response == nil {
-			return err
-		}
-		if status, nc := limitHandler(response.StatusCode, response.Rate, response.Header, err); status != nil {
-			if nc {
-				oldToken := g.ctoken
-				newToken := g.getNextToken(oldToken)
-				log.Warnln("new client required, resp.StatusCode=", response.StatusCode, ", resp.Rate=", response.Rate, ", oldToken=", oldToken, ", newToken:", newToken, " debug=", runtime.WhereAmI())
-				g.client = g.getClient(newToken)
+	var (
+		readme   *github.RepositoryContent
+		response *github.Response
+		res      = make(map[string]interface{}, 0)
+		err      error
+	)
+	goto request
+
+request:
+	{
+		get := func() error {
+			var err error
+			readme, response, err = g.client.Repositories.GetReadme(context.Background(), opts.Target.Owner, opts.Target.Name, nil)
+			if response == nil {
+				return err
 			}
 			return err
 		}
-		return nil
-	}
-	if err := retryRegistrationFunc(get); err != nil {
-		log.Errorln("error: ", err, "debug=", runtime.WhereAmI())
-		return nil, response, err
-	}
-	if response == nil {
-		return nil, nil, errorResponseIsNull
-	}
-	if readme == nil {
-		return nil, response, errorMarshallingResponse
-	}
-	content, _ := readme.GetContent()
-	readme.Content = &content
 
-	res := make(map[string]interface{}, len(opts.Filter.Maps))
-	mv := mxj.Map(structs.Map(readme))
-	if opts.Filter != nil {
-		if opts.Filter.Maps != nil {
-			res = extractWithMaps(mv, opts.Filter.Maps)
+		if err = retryRegistrationFunc(get); err != nil {
+			log.Errorln("exceeded?", strings.Contains(err.Error(), "exceeded"), "error: ", err, "debug=", runtime.WhereAmI())
+			goto finish
+		}
+
+		if response == nil {
+			err = errorResponseIsNull
+			goto finish
+		}
+
+		if readme == nil {
+			err = errorMarshallingResponse
+			goto finish
+		}
+
+		content, _ := readme.GetContent()
+		readme.Content = &content
+
+		mv := mxj.Map(structs.Map(readme))
+		if opts.Filter != nil {
+			if opts.Filter.Maps != nil {
+				res = extractWithMaps(mv, opts.Filter.Maps)
+			}
+		}
+
+		res["owner"] = opts.Target.Owner
+		res["name"] = opts.Target.Name
+		res["remote_repo_id"] = opts.Target.RepoId
+		res["request_url"] = response.Request.URL.String()
+		res["object_hash"] = fmt.Sprintf("%x", structhash.Sha1(res, 1))
+		goto finish
+	}
+
+finish:
+	return res, response, nil
+}
+
+/*
+func getRepoBranchSHA(g *Github, opts *Options) (map[string]interface{}, *github.Response, error) {
+	defer funcTrack(time.Now())
+
+	if err := s.waitForRate(); err != nil {
+		return "", err
+	}
+	b, _, err := s.client.Repositories.GetBranch(owner, repo, branch)
+	if err != nil {
+		if isNotFound(err) {
+			return "", errorsp.WithStacksAndMessage(ErrInvalidRepository, "GetBranch %v %v %v failed", owner, repo, branch)
+		}
+		return "", errorsp.WithStacksAndMessage(err, "GetBranch %v %v %v failed", owner, repo, branch)
+	}
+	if b.Commit == nil {
+		return "", nil
+	}
+	return stringsp.Get(b.Commit.SHA), nil
+}
+*/
+
+// verifyRepo checks all essential fields of a Repository structure for nil
+// values. An error is returned if one of the essential field is nil.
+func verifyRepo(repo *github.Repository) error {
+	if repo == nil {
+		return newInvalidStructError("verifyRepo: repo is nil")
+	}
+
+	var err *invalidStructError
+	if repo.ID == nil {
+		err = newInvalidStructError("verifyRepo: contains nil fields:").AddField("ID")
+	} else {
+		err = newInvalidStructError(fmt.Sprintf("verifyRepo: repo #%d contains nil fields: ", *repo.ID))
+	}
+
+	if repo.Name == nil {
+		err.AddField("Name")
+	}
+
+	if repo.Language == nil {
+		err.AddField("Language")
+	}
+
+	if repo.CloneURL == nil {
+		err.AddField("CloneURL")
+	}
+
+	if repo.Owner == nil {
+		err.AddField("Owner")
+	} else {
+		if repo.Owner.Login == nil {
+			err.AddField("Owner.Login")
 		}
 	}
 
-	res["owner"] = opts.Target.Owner
-	res["name"] = opts.Target.Name
-	res["remote_repo_id"] = opts.Target.RepoId
+	if repo.Fork == nil {
+		err.AddField("Fork")
+	}
 
-	return res, response, nil
+	if err.FieldsLen() > 0 {
+		return err
+	}
+
+	return nil
 }
 
 func extractWithMaps(mv mxj.Map, fields map[string]string) map[string]interface{} {
@@ -506,35 +658,4 @@ func extractBlocks(mv mxj.Map, items string, fields map[string][]string) map[str
 	}
 	// log.Println(l)
 	return l
-}
-
-func leafPathsPatterns(input []string) []string {
-	var output []string
-	var re = regexp.MustCompile(`.([0-9]+)`)
-	for _, value := range input {
-		value = re.ReplaceAllString(value, `[*]`)
-		if !contains(output, value) {
-			output = append(output, value)
-		}
-	}
-	return dedup(output)
-}
-
-func contains(input []string, match string) bool {
-	for _, value := range input {
-		if value == match {
-			return true
-		}
-	}
-	return false
-}
-
-func dedup(input []string) []string {
-	var output []string
-	for _, value := range input {
-		if !contains(output, value) {
-			output = append(output, value)
-		}
-	}
-	return output
 }

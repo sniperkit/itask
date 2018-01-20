@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/go-github/github"
-	"github.com/gregjones/httpcache"
 
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
@@ -20,12 +19,6 @@ var (
 	defaultAbuseDelay   time.Duration = 5 * time.Second
 	defaultRetryAttempt uint64        = 1
 	defaultPrefixApi                  = "https://api.github.com/"
-)
-
-var (
-	CacheEngine     = "badger"
-	CachePrefixPath = "./shared/data/cache/http"
-	xcache          httpcache.Cache
 )
 
 func New(tokens []*service.Token, opts *Options) *Github {

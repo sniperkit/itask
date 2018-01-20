@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -19,6 +18,8 @@ import (
 	Notes:
  	- for one token, Github's rate limit for authenticated requests is 5000 QPH = 83.3 QPM = 1.38 QPS = 720ms/query
  	- AbuseRateLimitError is not always present ?! to verify/confirm asap !
+	Refs:
+ 	- https://github.com/pantheon-systems/baryon/blob/fa9913c62c058fd4db1a95b6aa138d964021ef2e/source/gh/gh.go#L294-L327
 */
 
 type Rate struct {
@@ -35,9 +36,9 @@ func (g *Github) initTimer(resp *github.Response) {
 
 	if resp != nil {
 		g.counters.Increment("github.initTimer", 1)
+		log.Println("initTimer=", (*resp).Reset.Time.Sub(time.Now())+time.Second*2)
 		timer := time.NewTimer((*resp).Reset.Time.Sub(time.Now()) + time.Second*2)
 		g.timer = timer
-
 		return
 	}
 }
@@ -123,9 +124,9 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 
 		if statusCode == 401 {
 			log.Println("unautorized access, debug", runtime.WhereAmI())
-			oldToken := g.ctoken
-			newToken := g.getNextToken(oldToken)
-			g.client = g.getClient(newToken)
+			// oldToken := g.ctoken
+			// newToken := g.getNextToken(oldToken)
+			// g.client = g.getClient(newToken)
 			return nil
 		}
 
@@ -153,9 +154,9 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 		switch underlyingErr.(type) {
 		case *github.RateLimitError:
 			log.Println("g.limitHandler()...RateLimitError")
-			oldToken := g.ctoken
-			newToken := g.getNextToken(oldToken)
-			g.client = g.getClient(newToken)
+			// oldToken := g.ctoken
+			// newToken := g.getNextToken(oldToken)
+			// g.client = g.getClient(newToken)
 			return nil
 
 		case *github.AbuseRateLimitError:
@@ -187,12 +188,15 @@ func exceededRateLimit(client *github.Client) bool {
 
 	rate, _, err := client.RateLimits(context.Background())
 	if err != nil {
-		fmt.Printf("Error checking rate limit: %s\n", err)
+		log.Errorln("Error checking rate limit (%d): %s\n", rate.Core.Remaining, err)
 		return false
 	}
+	// log.Infof("GitHub API rate limit: %d.\n", rate.Core.Remaining)
+
 	// Check for a margin sufficient to run both examples.
-	if rate.Core.Remaining < 4 {
-		fmt.Printf("Exceeded (or almost exceeded) GitHub API rate limit: %s. Try again later.\n", rate.Core.Remaining)
+	if rate.Core.Remaining <= 10 {
+		time.Sleep(time.Duration(random(1000, 2000)) * time.Millisecond)
+		log.Warnf("Exceeded (or almost exceeded) GitHub API rate limit: %d. Try again later.\n", rate.Core.Remaining)
 		return true
 	}
 	return false
@@ -207,12 +211,24 @@ func limitHandler(statusCode int, rate github.Rate, hdrs http.Header, err error)
 			ok bool
 		)
 
+		if rate.Remaining <= 10 {
+			time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
+			log.Println("API rate limit of 5000 low remaining, debug=", runtime.WhereAmI())
+			return errorRateLimitLowLevel, true
+		}
+
 		if statusCode == 404 {
 			return errors.New("url not existing..."), false
 		}
 
 		if statusCode == 401 {
 			log.Println("unautorized access, debug=", runtime.WhereAmI())
+			return errorRateLimitReached, true
+		}
+
+		if statusCode == 403 {
+			time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
+			log.Println("API rate limit of 5000 still exceeded, debug=", runtime.WhereAmI())
 			return errorRateLimitReached, true
 		}
 

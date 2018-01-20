@@ -105,6 +105,7 @@ type TaskInfo struct {
 	repeat       bool
 	counters     *counter.Oc
 	rate         *rate.RateLimiter
+	priority     int
 
 	// Elements used in cycle detection.
 	index    int
@@ -131,7 +132,7 @@ func GetTaskFuncName(t *Task) string {
 func (tr *Tasker) ContinueWith2(name string, deps []string, task Tsk) *TaskInfo {
 	defer funcTrack(time.Now())
 
-	tr.Add(name, "jj", deps, task)
+	tr.Add(name, "jj", deps, task, 0)
 	err_ch := make(chan error)
 	tr.runTask(name, err_ch)
 	ti := tr.tis[name]
@@ -200,7 +201,8 @@ type Tasker struct {
 	Cluster string
 
 	// Map of taskInfo's indexed by task name.
-	tis  map[string]*TaskInfo
+	tis map[string]*TaskInfo
+
 	list *list.List
 
 	// Map of tasks names their dependencies. Its keys are identical to tis'.
@@ -304,7 +306,7 @@ func NewTasker(n int) (*Tasker, error) {
 // may be nil, but task may not.
 //
 // An error is returned if name is not unique.
-func (tr *Tasker) Add(name string, group string, deps []string, task Tsk) *TaskInfo {
+func (tr *Tasker) Add(name string, group string, deps []string, task Tsk, priority int) *TaskInfo {
 	defer funcTrack(time.Now())
 
 	tr.mux.Lock()
@@ -327,6 +329,7 @@ func (tr *Tasker) Add(name string, group string, deps []string, task Tsk) *TaskI
 	tr.tis[name] = newTaskInfo(task)
 	tr.dep_graph[name] = deps
 
+	tr.tis[name].priority = priority
 	tr.tis[name].Result = &TaskResult{Name: name}
 	tr.tis[name].Group = &group
 
