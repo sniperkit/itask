@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 )
 
 // isValidToken check if token is valid.

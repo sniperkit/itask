@@ -1,40 +1,49 @@
 package main
 
 import (
-	//"encoding/json"
-	"fmt"
-	//"html/template"
-	//"io/ioutil"
-	//"net/http"
-
 	"github.com/chonla/fact/fact"
-	// "github.com/cayleygraph/cayley"
-	// "github.com/cayleygraph/cayley/quad"
 )
 
 var (
-	// graphdb *cayley.Handle
-	factdb *fact.Fact
+	factdb     *fact.Fact
+	factInsert bool = false
 )
 
-func newFact() {
+func addQuad(subject string, predicate string, object string) map[string]string {
+	quad := map[string]string{
+		"subject":   subject,
+		"predicate": predicate,
+		"object":    object,
+	}
+	cds.Append("graph", quad)
+	if factInsert {
+		factdb.Let(subject).Has(predicate, object)
+	}
+	return quad
+}
 
-	// Pass a file name to create a persistent fact
+func initFact() {
 	factdb = fact.NewFact("./shared/data/facts.db")
-	// defer factdb.Close()
+}
 
+func newFact() *fact.Fact {
+	factdb = fact.NewFact("./shared/data/facts.db")
+	return fact.NewFact("./shared/data/facts.db")
+}
+
+func testFact() {
 	// Declare truth
 	factdb.Let("cat").Has("name", "cat")
 	factdb.Let("dog").Has("name", "hou")
 	factdb.Let("cat").Has("white", "black")
 
-	fmt.Println(factdb.What("cat", "name"))
-	fmt.Println(factdb.WhoHas("name", "cat"))
-	fmt.Println(factdb.WhoHas("name", "woof"))
-	fmt.Println(factdb.What(factdb.What("cat", "name"), "color"))
-	fmt.Println(factdb.Stringify(factdb.WhoHas("name", "cat")))
+	log.Println(factdb.What("cat", "name"))
+	log.Println(factdb.WhoHas("name", "cat"))
+	log.Println(factdb.WhoHas("name", "woof"))
+	log.Println(factdb.What(factdb.What("cat", "name"), "color"))
+	log.Println(factdb.Stringify(factdb.WhoHas("name", "cat")))
 
-	fmt.Println(factdb.What("time"))
+	log.Println(factdb.What("time"))
 }
 
 /*

@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/anacrolix/sync"
+	sync "github.com/sniperkit/xutil/plugin/concurrency/sync/debug"
+	// "github.com/abourget/llerrgroup"
 
 	exBackoff "github.com/jpillora/backoff"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 	"golang.org/x/oauth2"
 	// "golang.org/x/oauth2/github"
 
+	kf "github.com/miraclesu/keywords-filter"
 	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/sniperkit/cuckoofilter"
 
@@ -22,20 +24,23 @@ import (
 
 	"github.com/gregjones/httpcache"
 	"github.com/segmentio/stats/httpstats"
+	// "github.com/k0kubun/pp"
 )
 
 var (
-	defaultCLI *github.Client
+	ghClient      *github.Client
+	tokens        []string       = []string{}
+	clientManager *ClientManager = NewManager(tokens, nil, nil)
 )
 
 type Github struct {
 	ctoken  string
 	ctokens []*service.Token
-	// ref. https://github.com/pantheon-systems/baryon/blob/master/source/gh/gh.go
+
 	exBackoff   *exBackoff.Backoff
 	tokens      map[string]*service.TokenProfile
 	coptions    *Options
-	client      *github.Client
+	Client      *github.Client
 	tokenSource oauth2.TokenSource
 	httpClient  *http.Client
 	transport   *httpcache.Transport
@@ -44,11 +49,12 @@ type Github struct {
 	rateLimiters map[string]*rate.RateLimiter
 	mu           sync.Mutex
 	xcache       httpcache.Cache
-	manager      *ClientManager
+	Manager      *ClientManager
 	rateLimits   [categories]Rate
 	timer        *time.Timer
 	rateMu       sync.Mutex
 	wg           sync.WaitGroup
+	matcher      *kf.Filter
 
 	cfMax     *uint32
 	cfVisited *cuckoo.CuckooFilter
@@ -71,13 +77,12 @@ func (g *Github) getClient(token string) *github.Client {
 		g.ctoken = token
 		resetClient = true
 	}
-	if g.client == nil {
+	if g.Client == nil {
 		resetClient = true
 	}
 	if g.rateLimiters == nil {
 		g.rateLimiters = make(map[string]*rate.RateLimiter, len(g.tokens))
 	}
-	log.Println("#1 / g.ctoken=", g.ctoken, "resetClient=", resetClient, "g.xcache=", g.xcache == nil)
 	if g.xcache == nil {
 		var err error
 		g.xcache, err = newCacheBackend(CacheEngine, CachePrefixPath)
@@ -85,25 +90,9 @@ func (g *Github) getClient(token string) *github.Client {
 			log.Fatal("cache err", err.Error())
 		}
 	}
-	log.Println("#2 / g.ctoken=", g.ctoken, "resetClient=", resetClient, "g.xcache=", g.xcache == nil)
-	if g.client != nil && !resetClient {
-		return g.client
+	if g.Client != nil && !resetClient {
+		return g.Client
 	}
-
-	/*
-		// ref. https://github.com/golang/build/blob/master/maintner/github.go
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-		hc := oauth2.NewClient(ctx, ts)
-		//if tr, ok := hc.Transport.(*http.Transport); ok {
-		//	defer tr.CloseIdleConnections()
-		//}
-		directTransport := hc.Transport
-		cachingTransport := &httpcache.Transport{
-			Transport:           directTransport,
-			Cache:               &githubCache{Cache: httpcache.NewMemoryCache()},
-			MarkCachedResponses: true, // adds "X-From-Cache: 1" response header.
-		}
-	*/
 
 	var httpTransport = http.DefaultTransport
 	httpTransport = httpstats.NewTransport(httpTransport)
@@ -140,9 +129,9 @@ func (g *Github) getClient(token string) *github.Client {
 		},
 	}
 
-	g.client = github.NewClient(httpClient)
+	g.Client = github.NewClient(httpClient)
 
-	return g.client
+	return g.Client
 }
 
 func NewCacheWithTransport(xc httpcache.Cache) *httpcache.Transport {
@@ -158,50 +147,175 @@ func NewCacheWithTransport(xc httpcache.Cache) *httpcache.Transport {
 	return cachingTransport
 }
 
-var clientManager *ClientManager //= NewManager(tokens)
-
 // ClientManager used to manage the valid client.
 type ClientManager struct {
-	Dispatch chan *Github
-	reclaim  chan *Github
-	shutdown chan struct{}
+	Dispatch2 chan *github.Client
+	reclaim2  chan *github.Client
+	Dispatch  chan *Github
+	reclaim   chan *Github
+	shutdown  chan struct{}
 }
 
-// initTimer initialize client timer.
-func (g *Github) startTimer(resetAt time.Time) {
-	timer := time.NewTimer(resetAt.Sub(time.Now()) + time.Second*2)
-	g.timer = timer
-	return
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// START - STAGING
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
+func Reclaim2(g *Github, resetAt time.Time) {
+	defer funcTrack(time.Now())
+
+	g.startTimer2(resetAt)
+	select {
+	case <-g.timer.C:
+		g.Manager.reclaim2 <- g.client
+	}
 }
 
-func changeClient34(g *Github, resp *github.Response) *Github {
-	// g.mu.Lock()
-	// defer g.mu.Unlock()
+// Reclaim reclaim client while the client is valid.
+// resp: The response returned when calling the client.
+func (g *Github) Reclaim2(resetAt time.Time) { //resp *github.Response) {
+	defer funcTrack(time.Now())
 
-	// g.wg.Add(1)
-	// defer g.wg.Done()
+	g.startTimer2(resetAt)
+	select {
+	case <-g.timer.C:
+		g.Manager.reclaim2 <- g.client
+	}
+}
 
-	log.Info("changeClient")
-	//g.wg.Add(1)
-	//go func() {
-	//	g.Reclaim((*resp).Reset.Time)
-	//}()
+// start start reclaim and dispatch the client.
+func (cm *ClientManager) start2() {
+	defer funcTrack(time.Now())
 
-	//g.wg.Done()
-	return g.manager.Fetch()
+	for {
+		select {
+		case v := <-cm.reclaim2:
+			cm.Dispatch2 <- v
+		case <-cm.shutdown:
+			close(cm.Dispatch2)
+			close(cm.reclaim2)
+			return
+		}
+	}
+}
 
+func ChangeClient2(g *Github, resetAt time.Time) *github.Client {
+	log.Info("ChangeClient")
+	var wg sync.WaitGroup
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		Reclaim2(g, resetAt)
+	}()
+	return g.Manager.Fetch2()
+}
+
+// NewManager create a new client manager based on tokens.
+func NewManager2(tokens []string, opts *Options, xc *httpcache.Cache) *ClientManager {
+	defer funcTrack(time.Now())
+
+	// log.Fatalln("len(tokens)=", len(tokens))
+
+	var cm *ClientManager = &ClientManager{
+		reclaim2:  make(chan *Github),
+		Dispatch2: make(chan *Github, len(tokens)),
+		shutdown:  make(chan struct{}),
+	}
+	clients := newClients(tokens, opts, xc)
+	go cm.start()
+
+	go func() {
+		for _, c := range clients {
+			if !c.isLimited() {
+				cm.reclaim2 <- c
+			}
+		}
+	}()
+
+	return cm
+}
+
+// Fetch fetch a valid client.
+func (cm *ClientManager) Fetch2() *github.Client {
+	return <-cm.Dispatch2
+}
+*/
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// END - STAGING
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func Reclaim(g *Github, resetAt time.Time) {
+	defer funcTrack(time.Now())
+
+	// race condition
 	/*
-		var wg sync.WaitGroup
-
-		go func() {
-			wg.Add(1)
-			defer wg.Done()
-			Reclaim(g, resp)
-		}()
-
-		// g = g.manager.Fetch()
-		return g.manager.Fetch()
+	  github.com/sniperkit/xtask/plugin/aggregate/service/github.(*Github).startTimer()
+	      /Users/lucmichalski/local/golang/src/github.com/sniperkit/xtask/plugin/aggregate/service/github/client.go:508 +0xaa
+	  github.com/sniperkit/xtask/plugin/aggregate/service/github.Reclaim()
+	      /Users/lucmichalski/local/golang/src/github.com/sniperkit/xtask/plugin/aggregate/service/github/client.go:251 +0x92
+	  main.inspectClient.func1()
+	      /Users/lucmichalski/local/golang/src/github.com/sniperkit/xtask/example/xtask/xtask-github/tasks.go:104 +0xaa
 	*/
+	g.startTimer(resetAt)
+	log.Debugln("resetAt: ", resetAt)
+	select {
+	case <-g.timer.C:
+		log.Debugln("g.timer.C: ", g.timer.C)
+		g.Manager.reclaim <- g
+	}
+}
+
+// Reclaim reclaim client while the client is valid.
+// resp: The response returned when calling the client.
+func (g *Github) Reclaim(resetAt time.Time) { //resp *github.Response) {
+	defer funcTrack(time.Now())
+
+	g.startTimer(resetAt)
+	log.Debugln("resetAt: ", resetAt)
+	select {
+	case <-g.timer.C:
+		log.Debugln("g.timer.C: ", g.timer.C)
+		g.Manager.reclaim <- g
+	}
+}
+
+// Shutdown shutdown the client manager.
+func (cm *ClientManager) Shutdown() {
+	close(cm.shutdown)
+}
+
+// start start reclaim and dispatch the client.
+func (cm *ClientManager) start() {
+	defer funcTrack(time.Now())
+
+	for {
+		select {
+		case v := <-cm.reclaim:
+			log.Debugln("start v.isLimited(): ", v.isLimited())
+			cm.Dispatch <- v
+		case <-cm.shutdown:
+			close(cm.Dispatch)
+			close(cm.reclaim)
+			return
+		}
+	}
+}
+
+// Fetch fetch a valid client.
+func (cm *ClientManager) Fetch() *Github {
+	return <-cm.Dispatch
+}
+
+func ChangeClient(g *Github, resetAt time.Time) *Github {
+	log.Info("ChangeClient")
+	var wg sync.WaitGroup
+	go func() {
+		wg.Add(1)
+		defer wg.Done()
+		Reclaim(g, resetAt)
+	}()
+	return g.Manager.Fetch()
 }
 
 // NewManager create a new client manager based on tokens.
@@ -220,23 +334,17 @@ func NewManager(tokens []string, opts *Options, xc *httpcache.Cache) *ClientMana
 
 	go func() {
 		for _, c := range clients {
+			log.Infoln("NewManager.isLimited=", c.isLimited())
+			r, _ := c.getRateLimit()
+			log.Warnln("NewManager.ghClient.getRateLimit=", r)
 			if !c.isLimited() {
-				c.manager = cm
+				// c.manager = cm
 				cm.reclaim <- c
 			}
 		}
 	}()
 
 	return cm
-}
-
-//func init() {
-//	xcache, xtransport = initCacheTransport()
-//}
-
-func InitCache(xc httpcache.Cache, xt *httpcache.Transport) {
-	xcache = xc
-	xtransport = xt
 }
 
 // newClients create a client list based on tokens.
@@ -252,17 +360,21 @@ func newClients(tokens []string, opts *Options, xc *httpcache.Cache) []*Github {
 				coptions:     opts,
 				rateLimiters: make(map[string]*rate.RateLimiter, 1),
 				counters:     counter.NewOc(),
-				client:       gClient,
+				Client:       gClient,
 				httpClient:   gHttpClient,
 				tokenSource:  gTokenSource,
 				xcache:       *xc,
 			}
 
 			if !ghClient.isValidToken(gHttpClient) {
+				log.Warn("newClients.isValidToken=false")
 				continue
 			}
 
 			if ghClient.isLimited() {
+				log.Warn("newClients.isLimited=true")
+				r, _ := ghClient.getRateLimit()
+				log.Warnln("newClients.ghClient.getRateLimit=", r)
 				continue
 			}
 
@@ -284,11 +396,14 @@ func getClientSharedCache(token string, xc *httpcache.Cache) (*github.Client, oa
 
 		transport := NewCacheWithTransport(*xc)
 
+		// keepAliveTimeout := 600 * time.Second
+		// timeout := 2 * time.Second
 		httpClient := &http.Client{
 			Transport: &oauth2.Transport{
 				Base:   transport,
 				Source: oauth2Source,
 			},
+			// Timeout: timeout,
 		}
 
 		g := github.NewClient(httpClient)
@@ -314,7 +429,7 @@ func getClient(token string) *github.Client {
 		http.DefaultTransport = httpTransport
 
 		cachingTransport := httpcache.NewTransportFrom(backendCache, httpTransport) // httpcache.NewMemoryCacheTransport()
-		cachingTransport.MarkCachedResponses = true
+		cachingTransport.MarkCachedResponses = false
 		// reqModifyingTransport := newCacheRevalidationTransport(cachingTransport, revalidationDefaultMaxAge)
 
 		oauth2Source := oauth2.StaticTokenSource(
@@ -372,13 +487,18 @@ func newClient(token string) (client *Github, err error) {
 	return client, nil
 }
 
+func InitCache(xc httpcache.Cache, xt *httpcache.Transport) {
+	xcache = xc
+	xtransport = xt
+}
+
 // init initializes the client, returns true if available, or returns false.
 func (g *Github) init(tokenSource oauth2.TokenSource) bool {
 	defer funcTrack(time.Now())
 
 	httpClient := oauth2.NewClient(oauth2.NoContext, tokenSource)
 	ghClient := github.NewClient(httpClient)
-	g.client = ghClient
+	g.Client = ghClient
 	if !g.isValidToken(httpClient) {
 		return false
 	}
@@ -393,7 +513,7 @@ func (g *Github) init(tokenSource oauth2.TokenSource) bool {
 func (g *Github) makeRequest(httpClient *http.Client) (*http.Response, error) {
 	defer funcTrack(time.Now())
 
-	req, err := g.client.NewRequest("GET", "", nil)
+	req, err := g.Client.NewRequest("GET", "", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -404,4 +524,11 @@ func (g *Github) makeRequest(httpClient *http.Client) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+// initTimer initialize client timer.
+func (g *Github) startTimer(resetAt time.Time) {
+	timer := time.NewTimer(resetAt.Sub(time.Now()) + time.Second*2)
+	g.timer = timer
+	return
 }

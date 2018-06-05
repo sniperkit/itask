@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sniperkit/xutil/plugin/debug/pp"
+
 	"github.com/segmentio/stats"
 	"github.com/segmentio/stats/httpstats"
-
-	// "github.com/lalyos/httptrace"
 
 	"github.com/gregjones/httpcache"
 	"github.com/sniperkit/xcache/backend/default/badger"
@@ -52,6 +52,17 @@ func newCacheBackend(engine string, prefixPath string) (backend httpcache.Cache,
 	case "badger":
 		cacheStoragePrefixPath := filepath.Join(prefixPath, "cacher.badger")
 		fsutil.EnsureDir(cacheStoragePrefixPath)
+
+		cacheConfig := &badgercache.Config{
+			ValueDir:    "api.github.com.v3.snappy",
+			StoragePath: cacheStoragePrefixPath,
+			SyncWrites:  false,
+			Debug:       false,
+			Compress:    true,
+			TTL:         time.Duration(30 * 24 * time.Hour),
+		}
+		pp.Println("newCacheBackend().cacheConfig", cacheConfig)
+
 		backend, err = badgercache.New(
 			&badgercache.Config{
 				ValueDir:    "api.github.com.v3.snappy",
@@ -59,6 +70,7 @@ func newCacheBackend(engine string, prefixPath string) (backend httpcache.Cache,
 				SyncWrites:  false,
 				Debug:       false,
 				Compress:    true,
+				TTL:         time.Duration(30 * 24 * time.Hour),
 			})
 
 	case "memory":

@@ -8,10 +8,40 @@ import (
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 )
 
-var config Config
+var (
+	config               Config
+	defaultOffsetStarred = 1
+	defaultOffsetSearch  = 1
+	defaultBeatConfig    = BeatConfig{
+		Period:     30 * time.Second,
+		JobTimeout: 10 * time.Second,
+	}
+	writersList = []string{
+		"search_trends",
+		"search_codes",
+		"stars",
+		"latest_sha",
+		"repos",
+		"readmes",
+		"topics",
+		"langs",
+		"files",
+		"tasks",
+		"users",
+		"user_following",
+		"user_followers",
+		"user_nodes",
+		"release_tags",
+		"graph",
+	}
+)
 
-func loadConfig() {
-	configor.Load(&config, "shared/config/config.yaml")
+type BeatConfig struct {
+	Period      time.Duration `config:"period"`
+	JobTimeout  time.Duration `config:"period"`
+	Repos       []string      `config:"repos"`
+	Orgs        []string      `config:"orgs"`
+	AccessToken string        `config:"access_token"`
 }
 
 type Config struct {
@@ -22,18 +52,40 @@ type Config struct {
 	} `json:"app" yaml:"app" toml:"app"`
 
 	Service struct {
+		LibrariesIO struct {
+			Owner   string           `default:"roscopecoltran" json:"owner" yaml:"owner" toml:"owner"`
+			Tokens  []*service.Token `json:"tokens" yaml:"tokens" toml:"tokens"`
+			Ignore  []string         `json:"ignore" yaml:"ignore" toml:"ignore"`
+			PerPage int              `default:"20" json:"per_page" yaml:"per_page" toml:"per_page"`
+			Offset  int              `default:"1" json:"offset" yaml:"offset" toml:"offset"`
+			MaxPage int              `default:"-1" json:"max_page" yaml:"max_page" toml:"max_page"`
+		} `json:"librariesio" yaml:"librariesio" toml:"librariesio"`
+
 		Github struct {
-			Runner       string           `default:"roscopecoltran" json:"runner" yaml:"runner" toml:"runner"`
-			Accounts     []string         `json:"accounts" yaml:"accounts" toml:"accounts"`
-			Token        string           `json:"token" yaml:"token" toml:"token"`
-			Tokens       []*service.Token `json:"tokens" yaml:"tokens" toml:"tokens"`
-			ClientID     string           `json:"client_id" yaml:"client_id" toml:"client_id"`
-			ClientSecret string           `json:"client_secret" yaml:"client_secret" toml:"client_secret"`
-			PerPage      int              `default:"20" json:"per_page" yaml:"per_page" toml:"per_page"`
-			Offset       int              `default:"1" json:"offset" yaml:"offset" toml:"offset"`
-			MaxPage      int              `default:"-1" json:"max_page" yaml:"max_page" toml:"max_page"`
+			Owner    string           `default:"roscopecoltran" json:"owner" yaml:"owner" toml:"owner"`
+			Runner   string           `default:"roscopecoltran" json:"runner" yaml:"runner" toml:"runner"`
+			Accounts []string         `json:"accounts" yaml:"accounts" toml:"accounts"`
+			Token    string           `json:"token" yaml:"token" toml:"token"`
+			Tokens   []*service.Token `json:"tokens" yaml:"tokens" toml:"tokens"`
+			Search   struct {
+				Offset  int      `default:"1" json:"offset" yaml:"offset" toml:"offset"`
+				MaxPage int      `default:"-1" json:"max_page" yaml:"max_page" toml:"max_page"`
+				Repo    []string `json:"repo" yaml:"repo" toml:"repo"`
+				Code    []string `json:"code" yaml:"code" toml:"code"`
+				Issue   []string `json:"issue" yaml:"issue" toml:"issue"`
+				Commit  []string `json:"commit" yaml:"commit" toml:"commit"`
+			} `json:"search" yaml:"search" toml:"search"`
+			ClientID     string `json:"client_id" yaml:"client_id" toml:"client_id"`
+			ClientSecret string `json:"client_secret" yaml:"client_secret" toml:"client_secret"`
+			PerPage      int    `default:"20" json:"per_page" yaml:"per_page" toml:"per_page"`
+			Offset       int    `default:"1" json:"offset" yaml:"offset" toml:"offset"`
+			MaxPage      int    `default:"-1" json:"max_page" yaml:"max_page" toml:"max_page"`
 		} `json:"github" yaml:"github" toml:"github"`
 	} `json:"service" yaml:"service" toml:"service"`
+
+	Forward struct {
+		Beat BeatConfig
+	}
 
 	Flow struct {
 		Concurrency int `default:"5" json:"concurrency" yaml:"concurrency" toml:"concurrency"`
@@ -82,4 +134,8 @@ type Config struct {
 			} `json:"clients" yaml:"clients" toml:"clients"`
 		} `json:"engine" yaml:"engine" toml:"engine"`
 	} `json:"stats" yaml:"stats" toml:"stats"`
+}
+
+func loadConfig() {
+	configor.Load(&config, "shared/config/config.yaml")
 }

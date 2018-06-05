@@ -10,9 +10,10 @@ import (
 func retryRegistrationFunc(f func() error) error {
 	return f()
 	// return nil
-	defer funcTrack(time.Now())
+	// defer funcTrack(time.Now())
 
-	return backoff.Retry(f, backoff.WithMaxRetries(backoff.WithContext(backoff.NewConstantBackOff(defaultRetryDelay), context.Background()), defaultRetryAttempt))
+	// return backoff.Retry(f, backoff.WithMaxRetries(backoff.WithContext(backoff.NewConstantBackOff(defaultRetryDelay), context.Background()), defaultRetryAttempt))
+	// return backoff.Retry(f, backoff.WithMaxRetries(backoff.WithContext(backoff.NewConstantBackOff(defaultRetryDelay), context.Background()), defaultRetryAttempt))
 }
 
 func (g *Github) retryRegistrationFunc(f func() error) error {

@@ -3,7 +3,7 @@ package stats
 import (
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 )
 
 func GetStarDateSparklineData(firstStarDate time.Time, starMap map[string]int) []int {

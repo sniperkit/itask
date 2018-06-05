@@ -19,38 +19,7 @@ func (m *Tachymeter) Calc() *Metrics {
 
 	metrics.Samples = int(math.Min(float64(atomic.LoadUint64(&m.Count)), float64(m.Size)))
 	metrics.Count = int(atomic.LoadUint64(&m.Count))
-	/*
-		metrics.Samples = int(math.Min(float64(atomic.LoadUint64(&m.Count)), float64(m.Size)))
-		metrics.Count = int(atomic.LoadUint64(&m.Count))
-		times := make(timeSlice, metrics.Samples)
-		copy(times, m.Times[:metrics.Samples])
-		sort.Sort(times)
-
-		metrics.Time.Cumulative = times.cumulative()
-		var rateTime float64
-		if m.WallTime != 0 {
-			rateTime = float64(metrics.Count) / float64(m.WallTime)
-		} else {
-			rateTime = float64(metrics.Samples) / float64(metrics.Time.Cumulative)
-		}
-
-		metrics.Rate.Second = rateTime * 1e9
-
-		m.Unlock()
-
-		metrics.Time.Avg = times.avg()
-		metrics.Time.HMean = times.hMean()
-		metrics.Time.P50 = times[times.Len()/2]
-		metrics.Time.P75 = times.p(0.75)
-		metrics.Time.P95 = times.p(0.95)
-		metrics.Time.P99 = times.p(0.99)
-		metrics.Time.P999 = times.p(0.999)
-		metrics.Time.Long5p = times.long5p()
-		metrics.Time.Short5p = times.short5p()
-		metrics.Time.Min = times.min()
-		metrics.Time.Max = times.max()
-		metrics.Time.Range = times.srange()
-	*/
+	metrics.Wall = m.WallTime
 
 	ranks := make(timeRank, metrics.Samples)
 	copy(ranks, m.Ranks[:metrics.Samples])

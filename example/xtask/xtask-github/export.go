@@ -42,6 +42,33 @@ var encoderCsv = func(result xtask.TaskResult) {
 	log.Println("exportCSV")
 }
 
+func convertInterface2(input []map[string]interface{}) []interface{} {
+	results := make([]interface{}, len(input))
+	for _, result := range input {
+		// resultSlice := result.(map[string]interface{})
+		// pp.Println("resultSlice=", resultSlice)
+		results = append(results, result)
+	}
+	return results
+}
+
+func convertInterface(input map[string]interface{}) []interface{} {
+	results := make([]interface{}, len(input))
+	for _, result := range input {
+		resultSlice := result.(interface{})
+		results = append(results, resultSlice)
+	}
+	return results
+}
+
+func getHeaders(filterMap map[string]string) []string {
+	var hdrs []string
+	for k, _ := range filterMap {
+		hdrs = append(hdrs, k)
+	}
+	return hdrs
+}
+
 var processor = func(result xtask.TaskResult) {
 	if result.Error != nil {
 		log.Println("error: ", result.Error.Error(), "debug=", runtime.WhereAmI())
@@ -49,14 +76,19 @@ var processor = func(result xtask.TaskResult) {
 	log.Println("response:", result.Result)
 }
 
-var writersList = []string{"stars", "latest_sha", "users", "repos", "readmes", "topics", "files", "tasks", "objcache", "httpcache"}
-
 func initWriters(truncate bool, groups ...string) {
 	for _, group := range groups {
 		if writers[group] == nil {
 			writers[group] = newWriterJSON2CSV(truncate, group)
 		}
 	}
+}
+
+func roundU(val float64) int {
+	if val > 0 {
+		return int(val + 1.0)
+	}
+	return int(val)
 }
 
 func exportCSV(eg string, input interface{}) xtask.Tsk {
@@ -114,13 +146,21 @@ var sliceAdd = func(v interface{}) func(interface{}) interface{} {
 	}
 }
 
+var (
+	ExportPrefixPath = CacheDrive + "./shared/data/export"
+)
+
 func flushWriters() {
 	for k, w := range writers {
 		if w != nil {
 			data, _ := cds.Get(k)
 
+			if len(data) <= 0 {
+				continue
+			}
+
 			if jsonfile[k] == nil {
-				jsonOutpuFile := fmt.Sprintf("shared/data/export/json/%s.json", k)
+				jsonOutpuFile := fmt.Sprintf(ExportPrefixPath+"/json/%s.json", k)
 				var err error
 				jsonfile[k], err = os.OpenFile(jsonOutpuFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -134,6 +174,7 @@ func flushWriters() {
 				log.Fatalln("JSON2CSV error:", err)
 			}
 			w.WriteCSV(results)
+
 			w.Flush()
 			if err := w.Error(); err != nil {
 				log.Fatalln("Error: ", err)
@@ -146,7 +187,7 @@ func flushWriters() {
 
 // add prefixPath, headerStyleTable, transpose
 func newWriterJSON2CSV(truncate bool, basename string) *json2csv.CSVWriter {
-	outputFile := fmt.Sprintf("./shared/data/export/csv/%s.csv", basename)
+	outputFile := fmt.Sprintf(ExportPrefixPath+"/csv/%s.csv", basename)
 	log.Debugln("instanciate new concurrent writer to output file=", outputFile)
 	w, err := json2csv.NewCSVWriterToFile(outputFile)
 	if err != nil {

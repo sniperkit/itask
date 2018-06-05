@@ -20,3 +20,5 @@
 - https://github.com/b3ntly/obits/blob/master/server/server.go
 - https://github.com/leewind/git-project-collection/blob/master/service/collector_service.go
 - https://github.com/leewind/git-project-collection/blob/master/example/consumer.go
+- https://github.com/jojikubota/HttpScheduler/blob/master/app.go
+- 

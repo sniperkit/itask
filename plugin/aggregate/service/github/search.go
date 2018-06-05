@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/anacrolix/sync"
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 
 	"github.com/sniperkit/xtask/plugin/aggregate/service/github/constant"
 )

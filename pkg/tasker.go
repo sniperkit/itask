@@ -13,7 +13,8 @@ import (
 	// "context"
 	// "sync/atomic"
 
-	"github.com/anacrolix/sync"
+	sync "github.com/sniperkit/xutil/plugin/concurrency/sync/debug"
+
 	"github.com/boz/go-throttle"
 	"go.uber.org/ratelimit"
 	// "github.com/k0kubun/pp"
@@ -694,10 +695,11 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 	output := ti.task()
 
 	// ti.Result.Name = output.Result.Name
-	ti.Result.Result = output.Result
 	// ti.Result.Output = output.Output
+	ti.Result.Result = output.Result
 	ti.Result.Error = output.Error
 	ti.err = ti.Result.Error
+	log.Debugf("runTask().Name=%s ", name)
 
 	go func() {
 		defer func() {
@@ -711,6 +713,7 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 				}
 			}
 			ti.wait.Done()
+			// tr.tis[name] = nil
 		}()
 	}()
 
@@ -720,11 +723,10 @@ func (tr *Tasker) runTask(name string, err_ch chan error) {
 
 func (tr *Tasker) timeTrack(start time.Time, name string) {
 	tr.mux.Lock()
-	defer tr.mux.Unlock()
-
 	elapsed := time.Since(start)
 	log.Debugf("timeTrack() %s took %s", name, elapsed)
 	tr.tachymeter.AddTime(name, elapsed)
+	tr.mux.Unlock()
 }
 
 func (tr *Tasker) Limiter(limit int, interval time.Duration) *Tasker {

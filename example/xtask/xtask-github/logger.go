@@ -44,7 +44,8 @@ func GetCaller() string {
 }
 
 func timeTrack(startedAt time.Time, topic string) { //, reqInfo map[string]interface{}
-	go func() {
+	c := GetCaller()
+	go func(c string) {
 		/*
 			if req_url, ok := obj["request_url"].(string); ok {
 				req_url = strings.Replace(req_url, defaultSvcDomain, "", -1)
@@ -74,9 +75,9 @@ func timeTrack(startedAt time.Time, topic string) { //, reqInfo map[string]inter
 			cds.Append("tasks", task)
 		}
 
-		log.Printf("main().timeTrack() %s took %s", topic, elapsed)
+		log.Printf("main().timeTrack() %s took %s / %s", topic, elapsed, c)
 		// addMetrics(start, 1, err != nil)
-	}()
+	}(c)
 }
 
 // See http://stackoverflow.com/a/7053871/199475

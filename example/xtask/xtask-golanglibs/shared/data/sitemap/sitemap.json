@@ -1,0 +1,2397 @@
+{"urlset": 
+[
+  {
+    "url": "http://golanglibs.com/"
+  },
+  {
+    "url": "http://golanglibs.com/top"
+  },
+  {
+    "url": "http://golanglibs.com/active"
+  },
+  {
+    "url": "http://golanglibs.com/random"
+  },
+  {
+    "url": "http://golanglibs.com/category/docker"
+  },
+  {
+    "url": "http://golanglibs.com/category/kubernetes"
+  },
+  {
+    "url": "http://golanglibs.com/category/go-tools"
+  },
+  {
+    "url": "http://golanglibs.com/category/templates"
+  },
+  {
+    "url": "http://golanglibs.com/category/hardware"
+  },
+  {
+    "url": "http://golanglibs.com/category/geo"
+  },
+  {
+    "url": "http://golanglibs.com/category/vendoring"
+  },
+  {
+    "url": "http://golanglibs.com/category/testing"
+  },
+  {
+    "url": "http://golanglibs.com/category/applications"
+  },
+  {
+    "url": "http://golanglibs.com/category/microservices"
+  },
+  {
+    "url": "http://golanglibs.com/category/docs-books"
+  },
+  {
+    "url": "http://golanglibs.com/category/containers"
+  },
+  {
+    "url": "http://golanglibs.com/category/json"
+  },
+  {
+    "url": "http://golanglibs.com/category/web-framework"
+  },
+  {
+    "url": "http://golanglibs.com/category/file-storage"
+  },
+  {
+    "url": "http://golanglibs.com/category/distributed-computing"
+  },
+  {
+    "url": "http://golanglibs.com/category/protocols"
+  },
+  {
+    "url": "http://golanglibs.com/category/external-apis"
+  },
+  {
+    "url": "http://golanglibs.com/category/security"
+  },
+  {
+    "url": "http://golanglibs.com/category/cli"
+  },
+  {
+    "url": "http://golanglibs.com/category/http-middleware"
+  },
+  {
+    "url": "http://golanglibs.com/category/sql-orm"
+  },
+  {
+    "url": "http://golanglibs.com/category/gui"
+  },
+  {
+    "url": "http://golanglibs.com/category/http"
+  },
+  {
+    "url": "http://golanglibs.com/category/http-router"
+  },
+  {
+    "url": "http://golanglibs.com/category/message-queue"
+  },
+  {
+    "url": "http://golanglibs.com/category/http-clients"
+  },
+  {
+    "url": "http://golanglibs.com/category/databases"
+  },
+  {
+    "url": "http://golanglibs.com/category/performace"
+  },
+  {
+    "url": "http://golanglibs.com/category/debuggers"
+  },
+  {
+    "url": "http://golanglibs.com/category/bittorrent"
+  },
+  {
+    "url": "http://golanglibs.com/category/proxy"
+  },
+  {
+    "url": "http://golanglibs.com/category/job-queue"
+  },
+  {
+    "url": "http://golanglibs.com/category/data-structures"
+  },
+  {
+    "url": "http://golanglibs.com/category/caching"
+  },
+  {
+    "url": "http://golanglibs.com/category/graphics"
+  },
+  {
+    "url": "http://golanglibs.com/category/config"
+  },
+  {
+    "url": "http://golanglibs.com/category/other-languages"
+  },
+  {
+    "url": "http://golanglibs.com/category/logging"
+  },
+  {
+    "url": "http://golanglibs.com/category/ssh"
+  },
+  {
+    "url": "http://golanglibs.com/category/gaming"
+  },
+  {
+    "url": "http://golanglibs.com/category/cron"
+  },
+  {
+    "url": "http://golanglibs.com/category/backup"
+  },
+  {
+    "url": "http://golanglibs.com/category/text-processing"
+  },
+  {
+    "url": "http://golanglibs.com/category/process-management"
+  },
+  {
+    "url": "http://golanglibs.com/category/mac-related"
+  },
+  {
+    "url": "http://golanglibs.com/category/filesystem"
+  },
+  {
+    "url": "http://golanglibs.com/category/ml"
+  },
+  {
+    "url": "http://golanglibs.com/category/clients"
+  },
+  {
+    "url": "http://golanglibs.com/category/deploy"
+  },
+  {
+    "url": "http://golanglibs.com/category/cryptocurrencies"
+  },
+  {
+    "url": "http://golanglibs.com/category/terminal"
+  },
+  {
+    "url": "http://golanglibs.com/category/system-tools"
+  },
+  {
+    "url": "http://golanglibs.com/category/general helpers"
+  },
+  {
+    "url": "http://golanglibs.com/category/virtualization"
+  },
+  {
+    "url": "http://golanglibs.com/category/file-formats"
+  },
+  {
+    "url": "http://golanglibs.com/category/windows"
+  },
+  {
+    "url": "http://golanglibs.com/category/slack"
+  },
+  {
+    "url": "http://golanglibs.com/category/apns"
+  },
+  {
+    "url": "http://golanglibs.com/category/math"
+  },
+  {
+    "url": "http://golanglibs.com/category/admin"
+  },
+  {
+    "url": "http://golanglibs.com/category/crawlers"
+  },
+  {
+    "url": "http://golanglibs.com/category/local-development"
+  },
+  {
+    "url": "http://golanglibs.com/category/monitoring-alerting"
+  },
+  {
+    "url": "http://golanglibs.com/category/html"
+  },
+  {
+    "url": "http://golanglibs.com/category/dependency-injection"
+  },
+  {
+    "url": "http://golanglibs.com/category/telegram"
+  },
+  {
+    "url": "http://golanglibs.com/category/oauth"
+  },
+  {
+    "url": "http://golanglibs.com/category/dns"
+  },
+  {
+    "url": "http://golanglibs.com/category/resource-pool"
+  },
+  {
+    "url": "http://golanglibs.com/category/events"
+  },
+  {
+    "url": "http://golanglibs.com/category/networking"
+  },
+  {
+    "url": "http://golanglibs.com/category/linux"
+  },
+  {
+    "url": "http://golanglibs.com/category/recommendation-engines"
+  },
+  {
+    "url": "http://golanglibs.com/category/assets"
+  },
+  {
+    "url": "http://golanglibs.com/category/audio"
+  },
+  {
+    "url": "http://golanglibs.com/category/sync"
+  },
+  {
+    "url": "http://golanglibs.com/category/cryptography"
+  },
+  {
+    "url": "http://golanglibs.com/category/finance"
+  },
+  {
+    "url": "http://golanglibs.com/category/video"
+  },
+  {
+    "url": "http://golanglibs.com/category/soap"
+  },
+  {
+    "url": "http://golanglibs.com/category/uuid"
+  },
+  {
+    "url": "http://golanglibs.com/category/rtsp"
+  },
+  {
+    "url": "http://golanglibs.com/category/xlsx"
+  },
+  {
+    "url": "http://golanglibs.com/category/whois"
+  },
+  {
+    "url": "http://golanglibs.com/category/auto-rebuild"
+  },
+  {
+    "url": "http://golanglibs.com/category/dhcp"
+  },
+  {
+    "url": "http://golanglibs.com/category/compression"
+  },
+  {
+    "url": "http://golanglibs.com/category/scrapers"
+  },
+  {
+    "url": "http://golanglibs.com/category/stripe"
+  },
+  {
+    "url": "http://golanglibs.com/category/validation"
+  },
+  {
+    "url": "http://golanglibs.com/category/bots"
+  },
+  {
+    "url": "http://golanglibs.com/category/micro-databases"
+  },
+  {
+    "url": "http://golanglibs.com/category/rss"
+  },
+  {
+    "url": "http://golanglibs.com/category/v2ex"
+  },
+  {
+    "url": "http://golanglibs.com/category/statsd"
+  },
+  {
+    "url": "http://golanglibs.com/category/avro"
+  },
+  {
+    "url": "http://golanglibs.com/category/nice"
+  },
+  {
+    "url": "http://golanglibs.com/category/irc"
+  },
+  {
+    "url": "http://golanglibs.com/category/cuckoo-filter"
+  },
+  {
+    "url": "http://golanglibs.com/category/pretty-print"
+  },
+  {
+    "url": "http://golanglibs.com/category/date-time"
+  },
+  {
+    "url": "http://golanglibs.com/category/elasticsearch"
+  },
+  {
+    "url": "http://golanglibs.com/category/redis"
+  },
+  {
+    "url": "http://golanglibs.com/category/jira"
+  },
+  {
+    "url": "http://golanglibs.com/category/json-to-struct"
+  },
+  {
+    "url": "http://golanglibs.com/category/static-files"
+  },
+  {
+    "url": "http://golanglibs.com/category/paas"
+  },
+  {
+    "url": "http://golanglibs.com/category/i18n"
+  },
+  {
+    "url": "http://golanglibs.com/category/syntax-highlight"
+  },
+  {
+    "url": "http://golanglibs.com/category/qr-codes"
+  },
+  {
+    "url": "http://golanglibs.com/category/rtmp"
+  },
+  {
+    "url": "http://golanglibs.com/category/ip-filtering"
+  },
+  {
+    "url": "http://golanglibs.com/category/markdown"
+  },
+  {
+    "url": "http://golanglibs.com/category/csv"
+  },
+  {
+    "url": "http://golanglibs.com/category/css"
+  },
+  {
+    "url": "http://golanglibs.com/category/seo"
+  },
+  {
+    "url": "http://golanglibs.com/category/bioinformatics"
+  },
+  {
+    "url": "http://golanglibs.com/category/p2p"
+  },
+  {
+    "url": "http://golanglibs.com/category/php"
+  },
+  {
+    "url": "http://golanglibs.com/category/websockets"
+  },
+  {
+    "url": "http://golanglibs.com/category/go-alt-scene"
+  },
+  {
+    "url": "http://golanglibs.com/category/mqtt"
+  },
+  {
+    "url": "http://golanglibs.com/category/server-sent-events"
+  },
+  {
+    "url": "http://golanglibs.com/category/cqrs-es"
+  },
+  {
+    "url": "http://golanglibs.com/category/boltdb"
+  },
+  {
+    "url": "http://golanglibs.com/category/search-engines"
+  },
+  {
+    "url": "http://golanglibs.com/category/grpc"
+  },
+  {
+    "url": "http://golanglibs.com/category/serverless"
+  },
+  {
+    "url": "http://golanglibs.com/category/webrtc"
+  },
+  {
+    "url": "http://golanglibs.com/category/mongodb"
+  },
+  {
+    "url": "http://golanglibs.com/category/mail"
+  },
+  {
+    "url": "http://golanglibs.com/category/pdf"
+  },
+  {
+    "url": "http://golanglibs.com/category/blockchain"
+  },
+  {
+    "url": "http://golanglibs.com/category/nlp"
+  },
+  {
+    "url": "http://golanglibs.com/category/etl"
+  },
+  {
+    "url": "http://golanglibs.com/category/android"
+  },
+  {
+    "url": "http://golanglibs.com/category/amqp"
+  },
+  {
+    "url": "http://golanglibs.com/category/jupyter"
+  },
+  {
+    "url": "http://golanglibs.com/category/embedded-key-value-store"
+  },
+  {
+    "url": "http://golanglibs.com/category/mp4"
+  },
+  {
+    "url": "http://golanglibs.com/category/rpc"
+  },
+  {
+    "url": "http://golanglibs.com/category/authorization"
+  },
+  {
+    "url": "http://golanglibs.com/category/syntax-highlighting"
+  },
+  {
+    "url": "http://golanglibs.com/category/fault-tolerance"
+  },
+  {
+    "url": "http://golanglibs.com/category/cuda"
+  },
+  {
+    "url": "http://golanglibs.com/category/fuzzy-string-matching"
+  },
+  {
+    "url": "http://golanglibs.com/category/graph-algorithms"
+  },
+  {
+    "url": "http://golanglibs.com/category/pagerank"
+  },
+  {
+    "url": "http://golanglibs.com/tag/2d-game"
+  },
+  {
+    "url": "http://golanglibs.com/tag/8583"
+  },
+  {
+    "url": "http://golanglibs.com/tag/activemq"
+  },
+  {
+    "url": "http://golanglibs.com/tag/activerecord"
+  },
+  {
+    "url": "http://golanglibs.com/tag/afero"
+  },
+  {
+    "url": "http://golanglibs.com/tag/agent-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/algorithm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/algorithms-and-data-structures"
+  },
+  {
+    "url": "http://golanglibs.com/tag/algorithms-course"
+  },
+  {
+    "url": "http://golanglibs.com/tag/amber"
+  },
+  {
+    "url": "http://golanglibs.com/tag/amd64"
+  },
+  {
+    "url": "http://golanglibs.com/tag/amqp-10"
+  },
+  {
+    "url": "http://golanglibs.com/tag/anomaly-detection"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ansi"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ansi-color"
+  },
+  {
+    "url": "http://golanglibs.com/tag/apache-spark"
+  },
+  {
+    "url": "http://golanglibs.com/tag/apk"
+  },
+  {
+    "url": "http://golanglibs.com/tag/arabic"
+  },
+  {
+    "url": "http://golanglibs.com/tag/arch-linux"
+  },
+  {
+    "url": "http://golanglibs.com/tag/array"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ascii"
+  },
+  {
+    "url": "http://golanglibs.com/tag/asn1"
+  },
+  {
+    "url": "http://golanglibs.com/tag/aspect-oriented-programming"
+  },
+  {
+    "url": "http://golanglibs.com/tag/atlassian"
+  },
+  {
+    "url": "http://golanglibs.com/tag/atmel"
+  },
+  {
+    "url": "http://golanglibs.com/tag/atom"
+  },
+  {
+    "url": "http://golanglibs.com/tag/authorization-middleware"
+  },
+  {
+    "url": "http://golanglibs.com/tag/avro-schema"
+  },
+  {
+    "url": "http://golanglibs.com/tag/aws-iot"
+  },
+  {
+    "url": "http://golanglibs.com/tag/aws-ses"
+  },
+  {
+    "url": "http://golanglibs.com/tag/azure"
+  },
+  {
+    "url": "http://golanglibs.com/tag/azure-sql"
+  },
+  {
+    "url": "http://golanglibs.com/tag/babel"
+  },
+  {
+    "url": "http://golanglibs.com/tag/babelfish"
+  },
+  {
+    "url": "http://golanglibs.com/tag/backoff"
+  },
+  {
+    "url": "http://golanglibs.com/tag/backtrace"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bank-holidays"
+  },
+  {
+    "url": "http://golanglibs.com/tag/base-16"
+  },
+  {
+    "url": "http://golanglibs.com/tag/base64-encode"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bash-completion"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bazaar"
+  },
+  {
+    "url": "http://golanglibs.com/tag/beast"
+  },
+  {
+    "url": "http://golanglibs.com/tag/betfair"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bias"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bindata"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bintray"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bitbucket-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bitcoin-node"
+  },
+  {
+    "url": "http://golanglibs.com/tag/blockchain-implementation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/blog-platform"
+  },
+  {
+    "url": "http://golanglibs.com/tag/blog-software"
+  },
+  {
+    "url": "http://golanglibs.com/tag/blur-image"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bnc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/boilerplate-generator"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bootloader"
+  },
+  {
+    "url": "http://golanglibs.com/tag/braintree"
+  },
+  {
+    "url": "http://golanglibs.com/tag/breakout"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bulbs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/bytes-buffer"
+  },
+  {
+    "url": "http://golanglibs.com/tag/byzantine"
+  },
+  {
+    "url": "http://golanglibs.com/tag/caffe"
+  },
+  {
+    "url": "http://golanglibs.com/tag/calculus"
+  },
+  {
+    "url": "http://golanglibs.com/tag/caldav"
+  },
+  {
+    "url": "http://golanglibs.com/tag/camera"
+  },
+  {
+    "url": "http://golanglibs.com/tag/c-code"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cctv"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cdr"
+  },
+  {
+    "url": "http://golanglibs.com/tag/certificate-pinning"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chat"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chat-bot"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chat-program"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chrome-headless"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chromium"
+  },
+  {
+    "url": "http://golanglibs.com/tag/chronos"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cityhash"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cleverbot"
+  },
+  {
+    "url": "http://golanglibs.com/tag/clipboard"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cloud-foundry"
+  },
+  {
+    "url": "http://golanglibs.com/tag/code-coverage"
+  },
+  {
+    "url": "http://golanglibs.com/tag/code-runner"
+  },
+  {
+    "url": "http://golanglibs.com/tag/color-codes"
+  },
+  {
+    "url": "http://golanglibs.com/tag/colors"
+  },
+  {
+    "url": "http://golanglibs.com/tag/command-line"
+  },
+  {
+    "url": "http://golanglibs.com/tag/compressor"
+  },
+  {
+    "url": "http://golanglibs.com/tag/concurrency-patterns"
+  },
+  {
+    "url": "http://golanglibs.com/tag/concurrent-map"
+  },
+  {
+    "url": "http://golanglibs.com/tag/confluence"
+  },
+  {
+    "url": "http://golanglibs.com/tag/console-output"
+  },
+  {
+    "url": "http://golanglibs.com/tag/consul"
+  },
+  {
+    "url": "http://golanglibs.com/tag/contact-form"
+  },
+  {
+    "url": "http://golanglibs.com/tag/content-management-system"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cors"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cowsay"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cpu-temperature"
+  },
+  {
+    "url": "http://golanglibs.com/tag/create-json"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cron"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cron-job-scheduler"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cross-platform"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cross-platform-gui"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cryptocurrency-exchange"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cryptocurrency-trading"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cryptography"
+  },
+  {
+    "url": "http://golanglibs.com/tag/crypto-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/csv"
+  },
+  {
+    "url": "http://golanglibs.com/tag/csv-parser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/currency-converter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/curses"
+  },
+  {
+    "url": "http://golanglibs.com/tag/curve25519"
+  },
+  {
+    "url": "http://golanglibs.com/tag/cve"
+  },
+  {
+    "url": "http://golanglibs.com/tag/data-analysis"
+  },
+  {
+    "url": "http://golanglibs.com/tag/data-analytics"
+  },
+  {
+    "url": "http://golanglibs.com/tag/database-schema-migration"
+  },
+  {
+    "url": "http://golanglibs.com/tag/datadog"
+  },
+  {
+    "url": "http://golanglibs.com/tag/data-science"
+  },
+  {
+    "url": "http://golanglibs.com/tag/d-bus"
+  },
+  {
+    "url": "http://golanglibs.com/tag/debug-logging"
+  },
+  {
+    "url": "http://golanglibs.com/tag/decentralized"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dependency-injection"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dependency-injection-example"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dependency-injection-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dependency-management"
+  },
+  {
+    "url": "http://golanglibs.com/tag/design-patterns"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dht22"
+  },
+  {
+    "url": "http://golanglibs.com/tag/directed-graph"
+  },
+  {
+    "url": "http://golanglibs.com/tag/directory"
+  },
+  {
+    "url": "http://golanglibs.com/tag/distributed-hash-table"
+  },
+  {
+    "url": "http://golanglibs.com/tag/distributed-systems"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dns-sd"
+  },
+  {
+    "url": "http://golanglibs.com/tag/docker-machine"
+  },
+  {
+    "url": "http://golanglibs.com/tag/docker-registry-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/docker-workflow"
+  },
+  {
+    "url": "http://golanglibs.com/tag/document-store"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dokku"
+  },
+  {
+    "url": "http://golanglibs.com/tag/double-ended-queue"
+  },
+  {
+    "url": "http://golanglibs.com/tag/download-youtube"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dpdk"
+  },
+  {
+    "url": "http://golanglibs.com/tag/drmaa"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dropbox-clone"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dungeon-crawler"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dynamic-dns-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dynamic-proxy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/dynamodb-query"
+  },
+  {
+    "url": "http://golanglibs.com/tag/easyjson"
+  },
+  {
+    "url": "http://golanglibs.com/tag/easy-ssh"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ec2-instance"
+  },
+  {
+    "url": "http://golanglibs.com/tag/echo-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/echo-example"
+  },
+  {
+    "url": "http://golanglibs.com/tag/echo-middleware"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ecies"
+  },
+  {
+    "url": "http://golanglibs.com/tag/elapsed-time"
+  },
+  {
+    "url": "http://golanglibs.com/tag/elk-stack"
+  },
+  {
+    "url": "http://golanglibs.com/tag/elliptic-curve"
+  },
+  {
+    "url": "http://golanglibs.com/tag/elo-rating"
+  },
+  {
+    "url": "http://golanglibs.com/tag/embedded-database"
+  },
+  {
+    "url": "http://golanglibs.com/tag/entropy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/eventbus"
+  },
+  {
+    "url": "http://golanglibs.com/tag/event-handling"
+  },
+  {
+    "url": "http://golanglibs.com/tag/evolution"
+  },
+  {
+    "url": "http://golanglibs.com/tag/expressjs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/face-recognition"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fahrenheit"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fast-fourier-transform"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fasthttp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fast-http-router"
+  },
+  {
+    "url": "http://golanglibs.com/tag/federation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fft"
+  },
+  {
+    "url": "http://golanglibs.com/tag/file-copy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/filepath"
+  },
+  {
+    "url": "http://golanglibs.com/tag/file-system"
+  },
+  {
+    "url": "http://golanglibs.com/tag/file-system-watcher"
+  },
+  {
+    "url": "http://golanglibs.com/tag/file-template"
+  },
+  {
+    "url": "http://golanglibs.com/tag/flags"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fork-exec"
+  },
+  {
+    "url": "http://golanglibs.com/tag/foundationdb"
+  },
+  {
+    "url": "http://golanglibs.com/tag/foursquare-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fractal"
+  },
+  {
+    "url": "http://golanglibs.com/tag/framework-benchmark"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fritzbox"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fstab"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ftdi"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fuzz-testing"
+  },
+  {
+    "url": "http://golanglibs.com/tag/fzf"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gantt"
+  },
+  {
+    "url": "http://golanglibs.com/tag/generate-database"
+  },
+  {
+    "url": "http://golanglibs.com/tag/generate-pdf"
+  },
+  {
+    "url": "http://golanglibs.com/tag/genmai"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geocode"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geofence"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geolocation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geometry-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geonames"
+  },
+  {
+    "url": "http://golanglibs.com/tag/geoserver"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gerrit"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gettext"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gin-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gin-jwt"
+  },
+  {
+    "url": "http://golanglibs.com/tag/github-flavored-markdown"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gleam"
+  },
+  {
+    "url": "http://golanglibs.com/tag/glide"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gmail-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/goamz"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gocyclo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/go-doc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/godot"
+  },
+  {
+    "url": "http://golanglibs.com/tag/google-calendar"
+  },
+  {
+    "url": "http://golanglibs.com/tag/google-cloud-functions"
+  },
+  {
+    "url": "http://golanglibs.com/tag/go-ole"
+  },
+  {
+    "url": "http://golanglibs.com/tag/go-pg"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gopherjs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gorilla-websockets"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gorm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/goss"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gozmq"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gpu"
+  },
+  {
+    "url": "http://golanglibs.com/tag/gpx-file"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graceful-shutdown"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graph-algorithms"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graphiql"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graphql-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graphql-parser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graphql-subscriptions"
+  },
+  {
+    "url": "http://golanglibs.com/tag/graph-theory"
+  },
+  {
+    "url": "http://golanglibs.com/tag/grpc-connection-pool"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hamming"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hash-algorithm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hash-array"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hashgraph"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hash-table-implementation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/headless-browser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/heap-implementation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/helmet"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hessian"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hilbert"
+  },
+  {
+    "url": "http://golanglibs.com/tag/home-automation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/honeycomb"
+  },
+  {
+    "url": "http://golanglibs.com/tag/housing"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hpack"
+  },
+  {
+    "url": "http://golanglibs.com/tag/html-form"
+  },
+  {
+    "url": "http://golanglibs.com/tag/html-sanitizer"
+  },
+  {
+    "url": "http://golanglibs.com/tag/http-basic-auth"
+  },
+  {
+    "url": "http://golanglibs.com/tag/httpbin"
+  },
+  {
+    "url": "http://golanglibs.com/tag/http-download"
+  },
+  {
+    "url": "http://golanglibs.com/tag/httpget"
+  },
+  {
+    "url": "http://golanglibs.com/tag/http-proxy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/http-response"
+  },
+  {
+    "url": "http://golanglibs.com/tag/http-rpc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/https-proxy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/httptestresponserecorder"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hubic"
+  },
+  {
+    "url": "http://golanglibs.com/tag/hyperloglog"
+  },
+  {
+    "url": "http://golanglibs.com/tag/i2c"
+  },
+  {
+    "url": "http://golanglibs.com/tag/icloud"
+  },
+  {
+    "url": "http://golanglibs.com/tag/iconv"
+  },
+  {
+    "url": "http://golanglibs.com/tag/id3v1"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ieee-754"
+  },
+  {
+    "url": "http://golanglibs.com/tag/image-compression"
+  },
+  {
+    "url": "http://golanglibs.com/tag/image-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/image-package"
+  },
+  {
+    "url": "http://golanglibs.com/tag/image-viewer"
+  },
+  {
+    "url": "http://golanglibs.com/tag/information-retrieval"
+  },
+  {
+    "url": "http://golanglibs.com/tag/inode"
+  },
+  {
+    "url": "http://golanglibs.com/tag/input-validation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/interview-question"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ioc-di"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ios-apps"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ioutils"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ipinfo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ip-location"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ipv4-address"
+  },
+  {
+    "url": "http://golanglibs.com/tag/isaac"
+  },
+  {
+    "url": "http://golanglibs.com/tag/iso-3166-1"
+  },
+  {
+    "url": "http://golanglibs.com/tag/isomorphic"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jason"
+  },
+  {
+    "url": "http://golanglibs.com/tag/javascript-object"
+  },
+  {
+    "url": "http://golanglibs.com/tag/javascript-parser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jenkins-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jetbrains"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jsonp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/json-package"
+  },
+  {
+    "url": "http://golanglibs.com/tag/json-patch"
+  },
+  {
+    "url": "http://golanglibs.com/tag/json-support"
+  },
+  {
+    "url": "http://golanglibs.com/tag/json-to-csv"
+  },
+  {
+    "url": "http://golanglibs.com/tag/json-web-token"
+  },
+  {
+    "url": "http://golanglibs.com/tag/julia"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jwt-middleware"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jwt-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/jwt-token"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kafka-broker"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kalman"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kami"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ketama"
+  },
+  {
+    "url": "http://golanglibs.com/tag/keyboard-input"
+  },
+  {
+    "url": "http://golanglibs.com/tag/keychain"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kmz"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kubernetes"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kvstore"
+  },
+  {
+    "url": "http://golanglibs.com/tag/kyoto"
+  },
+  {
+    "url": "http://golanglibs.com/tag/l10n"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lamps"
+  },
+  {
+    "url": "http://golanglibs.com/tag/leftpad"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lending"
+  },
+  {
+    "url": "http://golanglibs.com/tag/levenshtein-distance"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lewis"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lexing-and-parsing"
+  },
+  {
+    "url": "http://golanglibs.com/tag/libjpeg-turbo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/libnfc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/libnotify"
+  },
+  {
+    "url": "http://golanglibs.com/tag/library-functions"
+  },
+  {
+    "url": "http://golanglibs.com/tag/libxml2"
+  },
+  {
+    "url": "http://golanglibs.com/tag/linux"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lisp-interpreter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/llvm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/login-logout"
+  },
+  {
+    "url": "http://golanglibs.com/tag/log-parser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/logplex"
+  },
+  {
+    "url": "http://golanglibs.com/tag/logrotate"
+  },
+  {
+    "url": "http://golanglibs.com/tag/log-rotation"
+  },
+  {
+    "url": "http://golanglibs.com/tag/logrus"
+  },
+  {
+    "url": "http://golanglibs.com/tag/longest-common-prefix"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lotto"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lru"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lshift"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lua-scripting"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lunar"
+  },
+  {
+    "url": "http://golanglibs.com/tag/lzo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/m3u8-playlist"
+  },
+  {
+    "url": "http://golanglibs.com/tag/machine-learning"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mail-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/make-a-game"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mame"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mandrill"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mapnik"
+  },
+  {
+    "url": "http://golanglibs.com/tag/margo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mediawiki"
+  },
+  {
+    "url": "http://golanglibs.com/tag/memory-management"
+  },
+  {
+    "url": "http://golanglibs.com/tag/memory-mapped"
+  },
+  {
+    "url": "http://golanglibs.com/tag/memory-pool"
+  },
+  {
+    "url": "http://golanglibs.com/tag/meow"
+  },
+  {
+    "url": "http://golanglibs.com/tag/merge"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mgo-query"
+  },
+  {
+    "url": "http://golanglibs.com/tag/microservices"
+  },
+  {
+    "url": "http://golanglibs.com/tag/midi"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mindstorms"
+  },
+  {
+    "url": "http://golanglibs.com/tag/minecraft-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mobile-game"
+  },
+  {
+    "url": "http://golanglibs.com/tag/modern-opengl"
+  },
+  {
+    "url": "http://golanglibs.com/tag/money"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mongodb-driver"
+  },
+  {
+    "url": "http://golanglibs.com/tag/monitor-file"
+  },
+  {
+    "url": "http://golanglibs.com/tag/monitor-process"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mosquitto"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mousetrap"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mpd-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mpeg-dash"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mta-mail"
+  },
+  {
+    "url": "http://golanglibs.com/tag/music-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/music-streaming"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mustache-template"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mxnet"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mysql-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/mysql-slave"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nacl"
+  },
+  {
+    "url": "http://golanglibs.com/tag/naive-bayes-classifier"
+  },
+  {
+    "url": "http://golanglibs.com/tag/natsort"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nats-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nats-streaming"
+  },
+  {
+    "url": "http://golanglibs.com/tag/neo4j"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nested-map"
+  },
+  {
+    "url": "http://golanglibs.com/tag/netcat"
+  },
+  {
+    "url": "http://golanglibs.com/tag/netconf"
+  },
+  {
+    "url": "http://golanglibs.com/tag/netfilter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/netmask"
+  },
+  {
+    "url": "http://golanglibs.com/tag/netstat"
+  },
+  {
+    "url": "http://golanglibs.com/tag/network-monitoring"
+  },
+  {
+    "url": "http://golanglibs.com/tag/network-namespace"
+  },
+  {
+    "url": "http://golanglibs.com/tag/network-port-scanner"
+  },
+  {
+    "url": "http://golanglibs.com/tag/neural-network"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nfqueue"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nfs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nginx-configuration"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nntp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/notification-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/nvml"
+  },
+  {
+    "url": "http://golanglibs.com/tag/oauth-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/object-cache"
+  },
+  {
+    "url": "http://golanglibs.com/tag/object-oriented-design"
+  },
+  {
+    "url": "http://golanglibs.com/tag/onedrive"
+  },
+  {
+    "url": "http://golanglibs.com/tag/onesignal"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ontology"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ooxml"
+  },
+  {
+    "url": "http://golanglibs.com/tag/opengl-es"
+  },
+  {
+    "url": "http://golanglibs.com/tag/openid"
+  },
+  {
+    "url": "http://golanglibs.com/tag/oracle-database"
+  },
+  {
+    "url": "http://golanglibs.com/tag/oracle-sql"
+  },
+  {
+    "url": "http://golanglibs.com/tag/orm-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/oscilloscope"
+  },
+  {
+    "url": "http://golanglibs.com/tag/os-kernel"
+  },
+  {
+    "url": "http://golanglibs.com/tag/oxy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pagerank"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pagination"
+  },
+  {
+    "url": "http://golanglibs.com/tag/parser-generator"
+  },
+  {
+    "url": "http://golanglibs.com/tag/particle-swarm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pascal"
+  },
+  {
+    "url": "http://golanglibs.com/tag/penetration"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pentest"
+  },
+  {
+    "url": "http://golanglibs.com/tag/persistent-storage"
+  },
+  {
+    "url": "http://golanglibs.com/tag/phantomjs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/photo"
+  },
+  {
+    "url": "http://golanglibs.com/tag/php-fpm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pi-camera"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ping"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pinterest"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pipeline-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pkcs7"
+  },
+  {
+    "url": "http://golanglibs.com/tag/play-audio"
+  },
+  {
+    "url": "http://golanglibs.com/tag/plist"
+  },
+  {
+    "url": "http://golanglibs.com/tag/png-image"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pngquant"
+  },
+  {
+    "url": "http://golanglibs.com/tag/polly"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pool"
+  },
+  {
+    "url": "http://golanglibs.com/tag/port-knocking"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pos-system"
+  },
+  {
+    "url": "http://golanglibs.com/tag/postmark"
+  },
+  {
+    "url": "http://golanglibs.com/tag/powerline"
+  },
+  {
+    "url": "http://golanglibs.com/tag/practice-programs"
+  },
+  {
+    "url": "http://golanglibs.com/tag/priority-queue"
+  },
+  {
+    "url": "http://golanglibs.com/tag/process-monitoring"
+  },
+  {
+    "url": "http://golanglibs.com/tag/proof-of-work"
+  },
+  {
+    "url": "http://golanglibs.com/tag/proto3"
+  },
+  {
+    "url": "http://golanglibs.com/tag/prpc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pseudo-terminal"
+  },
+  {
+    "url": "http://golanglibs.com/tag/push-notification-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/pwgen"
+  },
+  {
+    "url": "http://golanglibs.com/tag/python-call"
+  },
+  {
+    "url": "http://golanglibs.com/tag/python-interface"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qcow2"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qpid"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qps"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qrcode"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qrcode-generator"
+  },
+  {
+    "url": "http://golanglibs.com/tag/qt5"
+  },
+  {
+    "url": "http://golanglibs.com/tag/quadcopter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/quaternion"
+  },
+  {
+    "url": "http://golanglibs.com/tag/query-elasticsearch"
+  },
+  {
+    "url": "http://golanglibs.com/tag/queueing"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rabbitmq"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rabbitmq-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rake"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ramdisk"
+  },
+  {
+    "url": "http://golanglibs.com/tag/random-data"
+  },
+  {
+    "url": "http://golanglibs.com/tag/random-numbers"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ransomware"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rdap"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rdrand"
+  },
+  {
+    "url": "http://golanglibs.com/tag/reactive-programming"
+  },
+  {
+    "url": "http://golanglibs.com/tag/readline"
+  },
+  {
+    "url": "http://golanglibs.com/tag/recommendation-engine"
+  },
+  {
+    "url": "http://golanglibs.com/tag/reddit"
+  },
+  {
+    "url": "http://golanglibs.com/tag/redis"
+  },
+  {
+    "url": "http://golanglibs.com/tag/redis-orm"
+  },
+  {
+    "url": "http://golanglibs.com/tag/reflecting"
+  },
+  {
+    "url": "http://golanglibs.com/tag/regexp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/resource-management"
+  },
+  {
+    "url": "http://golanglibs.com/tag/resque"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rest-api-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rest-api-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/restaurant"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rest-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/reverse-shell"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ring-buffer"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ripple"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rng"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rocksdb"
+  },
+  {
+    "url": "http://golanglibs.com/tag/routeros"
+  },
+  {
+    "url": "http://golanglibs.com/tag/routing-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rpc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rrd"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rtmp-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/rules-engine"
+  },
+  {
+    "url": "http://golanglibs.com/tag/s3-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/salt-password"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sample-web-app"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sass"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sdl"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sdl2"
+  },
+  {
+    "url": "http://golanglibs.com/tag/seekable"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sequence-alignment"
+  },
+  {
+    "url": "http://golanglibs.com/tag/servemux"
+  },
+  {
+    "url": "http://golanglibs.com/tag/server-side-events"
+  },
+  {
+    "url": "http://golanglibs.com/tag/serve-static-files"
+  },
+  {
+    "url": "http://golanglibs.com/tag/session-cookie"
+  },
+  {
+    "url": "http://golanglibs.com/tag/set-membership"
+  },
+  {
+    "url": "http://golanglibs.com/tag/set-union"
+  },
+  {
+    "url": "http://golanglibs.com/tag/s-expressions"
+  },
+  {
+    "url": "http://golanglibs.com/tag/shaders"
+  },
+  {
+    "url": "http://golanglibs.com/tag/shell-execute"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simd"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-ai"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-database"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-dhcp-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-encryption"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-rest-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/simple-web-app"
+  },
+  {
+    "url": "http://golanglibs.com/tag/single-page-app"
+  },
+  {
+    "url": "http://golanglibs.com/tag/skylark"
+  },
+  {
+    "url": "http://golanglibs.com/tag/skype"
+  },
+  {
+    "url": "http://golanglibs.com/tag/slack-slash-command"
+  },
+  {
+    "url": "http://golanglibs.com/tag/smarty"
+  },
+  {
+    "url": "http://golanglibs.com/tag/smokeping"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sms"
+  },
+  {
+    "url": "http://golanglibs.com/tag/smtp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/snmp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/solr-client"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sonarqube"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sorted-map"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sorting"
+  },
+  {
+    "url": "http://golanglibs.com/tag/space-invaders"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sparrow"
+  },
+  {
+    "url": "http://golanglibs.com/tag/speech-recognition"
+  },
+  {
+    "url": "http://golanglibs.com/tag/speech-to-text"
+  },
+  {
+    "url": "http://golanglibs.com/tag/spinlock"
+  },
+  {
+    "url": "http://golanglibs.com/tag/splice"
+  },
+  {
+    "url": "http://golanglibs.com/tag/splunk"
+  },
+  {
+    "url": "http://golanglibs.com/tag/spring-boot"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sprintf"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sql-db"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sql-mapper"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sqlx"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ssl-certificate"
+  },
+  {
+    "url": "http://golanglibs.com/tag/stackexchange"
+  },
+  {
+    "url": "http://golanglibs.com/tag/steam-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/string-similarity"
+  },
+  {
+    "url": "http://golanglibs.com/tag/struct-tags"
+  },
+  {
+    "url": "http://golanglibs.com/tag/stunnel"
+  },
+  {
+    "url": "http://golanglibs.com/tag/sunrise"
+  },
+  {
+    "url": "http://golanglibs.com/tag/svg"
+  },
+  {
+    "url": "http://golanglibs.com/tag/synonyms"
+  },
+  {
+    "url": "http://golanglibs.com/tag/syntax-highlighter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/syslog"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tagging-system"
+  },
+  {
+    "url": "http://golanglibs.com/tag/task-list"
+  },
+  {
+    "url": "http://golanglibs.com/tag/task-management-system"
+  },
+  {
+    "url": "http://golanglibs.com/tag/task-queue"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tchannel"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tcp-proxy"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tcp-scanner"
+  },
+  {
+    "url": "http://golanglibs.com/tag/telnet-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tensorflow-serving"
+  },
+  {
+    "url": "http://golanglibs.com/tag/test-cases"
+  },
+  {
+    "url": "http://golanglibs.com/tag/test-driven-development"
+  },
+  {
+    "url": "http://golanglibs.com/tag/testflight"
+  },
+  {
+    "url": "http://golanglibs.com/tag/test-harness"
+  },
+  {
+    "url": "http://golanglibs.com/tag/testifyassert"
+  },
+  {
+    "url": "http://golanglibs.com/tag/text-color"
+  },
+  {
+    "url": "http://golanglibs.com/tag/text-editor"
+  },
+  {
+    "url": "http://golanglibs.com/tag/thumbor"
+  },
+  {
+    "url": "http://golanglibs.com/tag/time-format"
+  },
+  {
+    "url": "http://golanglibs.com/tag/time-tracking"
+  },
+  {
+    "url": "http://golanglibs.com/tag/token-auth"
+  },
+  {
+    "url": "http://golanglibs.com/tag/token-generator"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tornado"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tree-data-structure"
+  },
+  {
+    "url": "http://golanglibs.com/tag/trie-tree"
+  },
+  {
+    "url": "http://golanglibs.com/tag/tts-google"
+  },
+  {
+    "url": "http://golanglibs.com/tag/twilio-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/twitter-scraper"
+  },
+  {
+    "url": "http://golanglibs.com/tag/txt"
+  },
+  {
+    "url": "http://golanglibs.com/tag/ucl"
+  },
+  {
+    "url": "http://golanglibs.com/tag/udacity"
+  },
+  {
+    "url": "http://golanglibs.com/tag/unison"
+  },
+  {
+    "url": "http://golanglibs.com/tag/unit-testing-framework"
+  },
+  {
+    "url": "http://golanglibs.com/tag/unix-socket"
+  },
+  {
+    "url": "http://golanglibs.com/tag/url-router"
+  },
+  {
+    "url": "http://golanglibs.com/tag/usb-interface"
+  },
+  {
+    "url": "http://golanglibs.com/tag/user-login"
+  },
+  {
+    "url": "http://golanglibs.com/tag/utf-16"
+  },
+  {
+    "url": "http://golanglibs.com/tag/utility"
+  },
+  {
+    "url": "http://golanglibs.com/tag/validation-library"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vcenter"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vector-type"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vendoring-tutorial"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vertica"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vim-plugin"
+  },
+  {
+    "url": "http://golanglibs.com/tag/virtualenv"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vkontakte"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vmware-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/voip"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vulnerability"
+  },
+  {
+    "url": "http://golanglibs.com/tag/vulnerability-scanner"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wake-on-lan"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wamp"
+  },
+  {
+    "url": "http://golanglibs.com/tag/warden"
+  },
+  {
+    "url": "http://golanglibs.com/tag/watch-file-changes"
+  },
+  {
+    "url": "http://golanglibs.com/tag/water"
+  },
+  {
+    "url": "http://golanglibs.com/tag/waveform"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wavelet"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wayland"
+  },
+  {
+    "url": "http://golanglibs.com/tag/web-app"
+  },
+  {
+    "url": "http://golanglibs.com/tag/webdriver"
+  },
+  {
+    "url": "http://golanglibs.com/tag/web-framework-benchmark"
+  },
+  {
+    "url": "http://golanglibs.com/tag/web-mvc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/websocket"
+  },
+  {
+    "url": "http://golanglibs.com/tag/websocket-example"
+  },
+  {
+    "url": "http://golanglibs.com/tag/websocket-protocol"
+  },
+  {
+    "url": "http://golanglibs.com/tag/websocket-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/websockets-server"
+  },
+  {
+    "url": "http://golanglibs.com/tag/web-token"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wechat-api"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wget"
+  },
+  {
+    "url": "http://golanglibs.com/tag/whirlpool"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wiki"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wiki-engine"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wikipedia"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wildcard"
+  },
+  {
+    "url": "http://golanglibs.com/tag/win10"
+  },
+  {
+    "url": "http://golanglibs.com/tag/windows-service"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wmi"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wordnet"
+  },
+  {
+    "url": "http://golanglibs.com/tag/working-with-dates"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wsdl"
+  },
+  {
+    "url": "http://golanglibs.com/tag/wwdc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/x509-certificate"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xcb"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xlsx"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml-parser"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml-parser-example"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml-request"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xmlrpc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml-rpc"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xml-to-json"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xor"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xpath"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xquery"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xray"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xxhash"
+  },
+  {
+    "url": "http://golanglibs.com/tag/xxtea"
+  },
+  {
+    "url": "http://golanglibs.com/tag/yahoo-finance"
+  },
+  {
+    "url": "http://golanglibs.com/tag/yaml-config-file"
+  },
+  {
+    "url": "http://golanglibs.com/tag/youtube"
+  },
+  {
+    "url": "http://golanglibs.com/tag/zendesk"
+  },
+  {
+    "url": "http://golanglibs.com/tag/zeppelin"
+  },
+  {
+    "url": "http://golanglibs.com/tag/zeromq"
+  },
+  {
+    "url": "http://golanglibs.com/tag/zip"
+  },
+  {
+    "url": "http://golanglibs.com/tag/zlib"
+  }
+]}

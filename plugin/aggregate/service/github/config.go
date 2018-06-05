@@ -3,7 +3,7 @@ package github
 import (
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 
 	"github.com/sniperkit/xtask/plugin/aggregate/service"
 	"github.com/sniperkit/xtask/plugin/counter"
@@ -17,13 +17,13 @@ var (
 	defaultOpts         *Options
 	defaultRetryDelay   time.Duration = 150 * time.Millisecond
 	defaultAbuseDelay   time.Duration = 5 * time.Second
-	defaultRetryAttempt uint64        = 1
+	defaultRetryAttempt uint64        = 0
 	defaultPrefixApi                  = "https://api.github.com/"
+	debugLocks          bool
 )
 
 func New(tokens []*service.Token, opts *Options) *Github {
 	defer funcTrack(time.Now())
-
 	g := &Github{
 		ctoken:       tokens[0].Key,
 		ctokens:      tokens,
@@ -68,8 +68,13 @@ type Target struct {
 	Name    string
 	Branch  string
 	Ref     string
+	Query   string
+	Filters []string
 	OwnerId int
 	RepoId  int
+	Workers int
+	Start   string
+	End     string
 }
 
 type Output struct {
@@ -121,6 +126,9 @@ type Options struct {
 	Accounts             []string
 	Page                 int
 	PerPage              int
+	Workers              int
+	Start                string
+	End                  string
 	Target               *Target
 	Filter               *Filter
 	ActivityListStarred  *github.ActivityListStarredOptions

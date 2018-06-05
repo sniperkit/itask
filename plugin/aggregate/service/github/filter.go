@@ -1,11 +1,17 @@
 package github
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/google/go-github/github"
+	// "github.com/k0kubun/pp"
+
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
+
+	kf "github.com/miraclesu/keywords-filter"
+	goac "github.com/sniperkit/xfilter/backend/goac"
 
 	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/sniperkit/cuckoofilter"
@@ -22,6 +28,11 @@ var (
 	cfVisited *cuckoo.CuckooFilter
 	cfDone    *cuckoofilter.Filter
 	cf404     *cuckoofilter.Filter
+	fx        *kf.Filter
+	wac       *goac.AhoCorasick      = goac.NewAhoCorasick()
+	wai       map[string]*FilterInfo = make(map[string]*FilterInfo, 0)
+
+	Threshold int = 50
 
 	depRegexp    *regexp.Regexp
 	DOC_EXTS     = []string{"md", "markdown", "mdown", "mkdn", "mdwn", "mdtxt", "txt", "text", "doc", "htm", "html"}
@@ -52,6 +63,29 @@ var (
 	}
 )
 
+type FilterInfo struct {
+	Ignore  bool
+	Extract bool
+	Regexp  []string
+}
+
+func HasElem(s interface{}, elem interface{}) bool {
+	arrV := reflect.ValueOf(s)
+
+	if arrV.Kind() == reflect.Slice {
+		for i := 0; i < arrV.Len(); i++ {
+
+			// XXX - panics if slice element points to an unexported struct field
+			// see https://golang.org/pkg/reflect/#Value.Interface
+			if arrV.Index(i).Interface() == elem {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func leafPathsPatterns(input []string) []string {
 	var output []string
 	var re = regexp.MustCompile(`.([0-9]+)`)
@@ -64,6 +98,67 @@ func leafPathsPatterns(input []string) []string {
 	return dedup(output)
 }
 
+func GlobalFilters(filters map[string]*FilterInfo) *goac.AhoCorasick {
+	defer funcTrack(time.Now())
+	if wac == nil {
+		wac = goac.NewAhoCorasick()
+	}
+	wai = filters
+	for group, params := range filters {
+		wac.AddPatterns(group, params.Regexp...)
+	}
+	// pp.Println("filters=", filters)
+	wac.Build()
+	return wac
+}
+
+func AddWordFilters(filters map[string]*FilterInfo) *goac.AhoCorasick {
+	defer funcTrack(time.Now())
+	wai = filters
+	for group, params := range filters {
+		wac.AddPatterns(group, params.Regexp...)
+	}
+	// pp.Println("filters=", filters)
+	return wac
+}
+
+func Scan(s string, filters []string) []map[string]interface{} {
+	sr := make([]map[string]interface{}, 0)
+	results := wac.Scan(s)
+	for _, result := range results {
+		if contains(filters, result.Group) {
+			output := map[string]interface{}{
+				`input`:   s,
+				`match`:   string([]rune(s)[result.Start : result.End+1]),
+				`group`:   result.Group,
+				`start`:   result.Start,
+				`end`:     result.End + 1,
+				`ignore`:  wai[result.Group].Ignore,
+				`extract`: wai[result.Group].Extract,
+			}
+			log.Println("sr=", sr)
+			if wai[result.Group].Ignore {
+				return sr
+			}
+			sr = append(sr, output)
+		}
+	}
+	return sr
+}
+
+func Ignore(s string, filters []string) bool {
+	results := wac.Scan(s)
+	for _, result := range results {
+		if contains(filters, result.Group) {
+			if wai[result.Group].Ignore {
+				log.Println("[IGNORE] input=", s, "group=", result.Group)
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func contains(input []string, match string) bool {
 	for _, value := range input {
 		if value == match {
@@ -71,6 +166,31 @@ func contains(input []string, match string) bool {
 		}
 	}
 	return false
+}
+
+type ScanResult struct {
+	Input string
+	match string
+	Tags  string
+	Group string
+	start int
+	end   int
+}
+
+func filterKeywords(input string) []map[string]interface{} {
+
+	sr := make([]map[string]interface{}, 0)
+	results := wac.Scan(input)
+	for _, result := range results {
+		sr = append(sr, map[string]interface{}{
+			`tags`:  string([]rune(input)[result.Start : result.End+1]),
+			`group`: result.Group,
+			`start`: result.Start,
+			`end`:   result.End + 1,
+		})
+		// log.Println("match=", string([]rune(output)[result.Start:result.End+1]), ", group=", result.Group, ", start=", result.Start, ", end=", result.End+1)
+	}
+	return sr
 }
 
 func dedup(input []string) []string {
@@ -117,8 +237,8 @@ func (g *Github) CacheCount() int {
 func (g *Github) LoadCache(max int, prefix string, remove string, stopPatterns []string) bool {
 	defer funcTrack(time.Now())
 
-	if g.client == nil {
-		g.client = getClient(g.ctoken)
+	if g.Client == nil {
+		g.Client = getClient(g.ctoken)
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -144,9 +264,6 @@ func (g *Github) CacheSlugExists(slug string) bool {
 
 	return g.cfVisited.Lookup([]byte(slug))
 }
-
-// g.cfDone.Delete([]byte(slug))
-// g.cfDone.Count()
 
 func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, stopPatterns *[]string, existingKeys *map[string]*interface{}) (*cuckoo.CuckooFilter, int) {
 	defer funcTrack(time.Now())
@@ -191,8 +308,7 @@ func getCached(cnt *counter.Oc, maxKeys uint32, prefix *string, remove *string, 
 	return registry, int(registry.Count())
 }
 
-// isLanguageWanted checks if language(s) is in the list of wanted
-// languages.
+// isLanguageWanted checks if language(s) is in the list of wanted languages.
 func isLanguageWanted(suppLangs []string, prjLangs interface{}) (bool, error) {
 	if prjLangs == nil {
 		return false, nil
@@ -225,3 +341,95 @@ func isLanguageWanted(suppLangs []string, prjLangs interface{}) (bool, error) {
 
 	return false, nil
 }
+
+/*
+func (g *Github) WithLocalFilters(filter *FilterInfo) (g *Github) {
+	defer funcTrack(time.Now())
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	var err error
+	filter, err = kf.New(*Threshold, nil)
+	if err != nil {
+		log.Println(err.Error())
+		return g
+	}
+	g.filter = filter
+	return
+}
+
+func (g *Github) AddSymFilters(filters map[string][]string) (g *Github) {
+	defer funcTrack(time.Now())
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for _, words := range filters {
+		for _, word := range words {
+			g.filter.AddSymb("Makefile")
+		}
+	}
+	return
+}
+
+func (g *Github) AddWordFilters(filters map[string][]string) (g *Github) {
+	defer funcTrack(time.Now())
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for _, words := range filters {
+		g.filter.AddWords(words)
+	}
+	return
+}
+
+func contentFilter(g *Github, s string, ignore bool) bool {
+	results := g.filter.Scan(s)
+	ok := len(results) > 0
+	if ignore {
+		return !ok
+	}
+	return ok
+}
+
+func (g *Github) ContentFilter(s string, ignore bool) bool {
+	keywordMap := make(map[string]struct{}) // use the keyword map to deduplicate keywords for same line
+	for key, info := range g.keywordMapping {
+		for _, regex := range info.Regexp { // compare the passed string against every regexp possibility
+			if _, ok := keywordMap[key]; !ok { // don't check again if the keyword has already been added
+				r := regexp.MustCompile(`(?i)` + regex) // add i flag to make case insenstive
+				if r.Match([]byte(s)) {
+					keywordMap[key] = struct{}{}
+					return ignore
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (g *Github) Match(s string) (matches []string) {
+	// use the keyword map to deduplicate keywords for same line
+	keywordMap := make(map[string]struct{})
+
+	for key, info := range KeywordMapping {
+		// compare the passed string against every regexp possibility
+		for _, regex := range info.Regexp {
+			// don't check again if the keyword has already been added
+			if _, ok := keywordMap[key]; !ok {
+				// add i flag to make case insenstive
+				r := regexp.MustCompile(`(?i)` + regex)
+				if r.Match([]byte(s)) {
+					keywordMap[key] = struct{}{}
+					// log.Printf("SubexpNames: %s\n", r.SubexpNames())
+				}
+			}
+		}
+	}
+
+	// return the slice of keys for the keyword map
+	for keyword := range keywordMap {
+		matches = append(matches, keyword)
+	}
+	return matches
+}
+*/

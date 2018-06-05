@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 )
 
 var (
@@ -50,9 +50,15 @@ func (node *UserNode) String() string {
 // enqueues each of them.
 func (node *UserNode) Process() {
 	opts := github.ListOptions{Page: node.Page, PerPage: 100}
-	following, _, err := defaultCLI.Users.ListFollowing(ctx, node.Login, &opts)
+	following, resp, err := ghClient.Users.ListFollowing(ctx, node.Login, &opts)
 	if err != nil {
-		log.Fatal(err)
+		log.Errorln("error=", err, "resp=", resp)
+		log.Warningln("resp.Rate.Reset.Nanosecond()=", resp.Rate.Reset.Nanosecond(), "Retry-After=", resp.Response.Header.Get("Retry-After"))
+	}
+
+	if resp == nil {
+		log.Errorln("error=", err, "resp=", resp)
+		log.Warningln("resp.Rate.Reset.Nanosecond()=", resp.Rate.Reset.Nanosecond(), "Retry-After=", resp.Response.Header.Get("Retry-After"))
 	}
 
 	for _, followee := range following {
@@ -78,7 +84,7 @@ func (node *UserNode) Process() {
 // Run starts the dispatcher and pushes a new request for the root user onto
 // the queue. Returns the *UserNode that is received on the done channel.
 func Run(start, end string, nWorkers int, g *Github) *UserNode {
-	defaultCLI, ctx = g.client, context.Background()
+	ghClient, ctx = g.Client, context.Background()
 
 	if nWorkers <= 0 {
 		nWorkers = 6

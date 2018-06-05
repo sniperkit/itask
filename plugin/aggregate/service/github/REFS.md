@@ -30,3 +30,4 @@
 - https://github.com/lucassabreu/github-journaling-aggregator/blob/master/cmd/root.go
 - https://github.com/elastic/beats/blob/master/libbeat/common/mapstr.go
 - https://github.com/pantheon-systems/baryon/blob/fa9913c62c058fd4db1a95b6aa138d964021ef2e/source/gh/gh.go#L294-L327
+- ref. https://github.com/pantheon-systems/baryon/blob/master/source/gh/gh.go

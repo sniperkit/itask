@@ -99,6 +99,7 @@ type Metrics struct {
 		Min        string
 		Range      time.Duration // Event duration range (Max-Min).
 	}
+
 	/*
 		Rank struct {
 			P50     []map[time.Duration]string // Event duration nth percentiles ..
@@ -133,6 +134,7 @@ type Metrics struct {
 	HistogramBucketSize time.Duration // The width of a histogram bucket in time.
 	Samples             int           // Number of events included in the sample set.
 	Count               int           // Total number of events observed.
+	Wall                time.Duration
 }
 
 // New initializes a new Tachymeter.
@@ -204,6 +206,7 @@ func (m *Metrics) Dump() {
 // String returns a formatted Metrics string.
 func (m *Metrics) String() string {
 	return fmt.Sprintf(`%d samples of %d events
+Wall:		%s
 Cumulative:	%s
 HMean:		%s
 Avg.:		%s
@@ -220,6 +223,7 @@ Range:		%s
 Rate/sec.:	%.2f`,
 		m.Samples,
 		m.Count,
+		m.Wall.String(),
 		m.Rank.Cumulative,
 		m.Rank.HMean,
 		m.Rank.Avg,
@@ -272,6 +276,7 @@ func (m *Metrics) MarshalJSON() ([]byte, error) {
 		Samples   int
 		Count     int
 		Histogram *Histogram
+		Wall      string
 	}{
 		Time: struct {
 			Cumulative string
@@ -308,6 +313,7 @@ func (m *Metrics) MarshalJSON() ([]byte, error) {
 		Histogram: m.Histogram,
 		Samples:   m.Samples,
 		Count:     m.Count,
+		Wall:      m.Wall.String(),
 	})
 }
 

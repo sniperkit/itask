@@ -1,16 +1,19 @@
 package github
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	sync "github.com/sniperkit/xutil/plugin/concurrency/sync/debug"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
+
 	"github.com/sniperkit/xtask/plugin/rate"
 	"github.com/sniperkit/xtask/util/runtime"
 
-	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
 )
 
@@ -47,7 +50,7 @@ func (g *Github) initTimer(resp *github.Response) {
 func (g *Github) isLimited() bool {
 	defer funcTrack(time.Now())
 
-	rate, _, err := g.client.RateLimits(context.Background())
+	rate, _, err := g.Client.RateLimits(context.Background())
 	if err != nil {
 		return true
 	}
@@ -136,7 +139,7 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 			// wait before resuming making requests.
 			retryAfterSeconds, _ := strconv.ParseInt(v[0], 10, 64) // Error handling is noop.
 			retryAfter := time.Duration(retryAfterSeconds) * time.Second
-			log.Println("error:", err.Error(), "Retry-After=", v, "retryAfterSeconds: ", retryAfterSeconds, "retryAfter=", retryAfter.Seconds(), "debug", runtime.WhereAmI())
+			log.Println("[Retry-After] error:", err.Error(), "Retry-After=", v, "retryAfterSeconds: ", retryAfterSeconds, "retryAfter=", retryAfter.Seconds(), "debug", runtime.WhereAmI())
 			time.Sleep(retryAfter)
 			return errors.New("g.limitHandler()... API abuse detected...")
 		}
@@ -146,7 +149,7 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 		underlyingErr := errors.Cause(err)
 
 		if e, ok = err.(*github.AbuseRateLimitError); ok {
-			log.Println("error:", err.Error(), "e:", e, "err.(*github.AbuseRateLimitError) have triggered an abuse detection mechanism.", underlyingErr, "debug", runtime.WhereAmI())
+			log.Println("[AbuseRateLimitError] error:", err.Error(), "e:", e, "err.(*github.AbuseRateLimitError) have triggered an abuse detection mechanism.", underlyingErr, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
 			return errors.New("g.limitHandler()... API abuse detected...")
 		}
@@ -161,7 +164,7 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 
 		case *github.AbuseRateLimitError:
 			var e *github.AbuseRateLimitError
-			log.Println("error:", err.Error(), "e:", e, "*github.AbuseRateLimitError.", underlyingErr, "*e.RetryAfter=", *e.RetryAfter, "debug", runtime.WhereAmI())
+			log.Println("[AbuseRateLimitError] error:", err.Error(), "e:", e, "*github.AbuseRateLimitError.", underlyingErr, "*e.RetryAfter=", *e.RetryAfter, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
 			return errors.New("g.limitHandler()... API abuse detected...")
 
@@ -170,7 +173,7 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 				strings.Contains(err.Error(), "abuse detection") ||
 				strings.Contains(err.Error(), "try again") {
 				time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
-				log.Println("error:", err.Error(), "underlyingErr.(type).default", underlyingErr, "debug", runtime.WhereAmI())
+				log.Println("[default] error:", err.Error(), "underlyingErr.(type).default", underlyingErr, "debug", runtime.WhereAmI())
 				// return errors.New("Temporary error detected...")
 			}
 			return err
@@ -183,26 +186,33 @@ func (g *Github) limitHandler(statusCode int, rate github.Rate, hdrs http.Header
 	return nil
 }
 
-func exceededRateLimit(client *github.Client) bool {
+func ExceededRateLimit(client *github.Client) (bool, time.Time) {
 	defer funcTrack(time.Now())
+
+	if debugLocks {
+		var buf bytes.Buffer
+		sync.PrintLockTimes(&buf)
+		log.Println("sync.PrintLockTimes=", buf.String())
+	}
 
 	rate, _, err := client.RateLimits(context.Background())
 	if err != nil {
-		log.Errorln("Error checking rate limit (%d): %s\n", rate.Core.Remaining, err)
-		return false
+		log.Errorf("GitHub API Error checking rate limit: %s\n", err.Error())
+		return false, time.Now()
 	}
-	// log.Infof("GitHub API rate limit: %d.\n", rate.Core.Remaining)
+
+	log.Infof("GitHub API Rate limit: %d, resetAt: %s.\n", rate.Core.Remaining, rate.Core.Reset.Time)
 
 	// Check for a margin sufficient to run both examples.
 	if rate.Core.Remaining <= 10 {
 		time.Sleep(time.Duration(random(1000, 2000)) * time.Millisecond)
-		log.Warnf("Exceeded (or almost exceeded) GitHub API rate limit: %d. Try again later.\n", rate.Core.Remaining)
-		return true
+		log.Warnf("GitHub API Exceeded (or almost exceeded) GitHub API rate limit: %d. Try again later.\n", rate.Core.Remaining)
+		return true, rate.Core.Reset.Time
 	}
-	return false
+	return false, rate.Core.Reset.Time
 }
 
-func limitHandler(statusCode int, rate github.Rate, hdrs http.Header, err error) (error, bool) {
+func CheckLimit(statusCode int, rate github.Rate, hdrs http.Header, err error) (error, bool) {
 	defer funcTrack(time.Now())
 
 	if err != nil {
@@ -238,7 +248,7 @@ func limitHandler(statusCode int, rate github.Rate, hdrs http.Header, err error)
 			// wait before resuming making requests.
 			retryAfterSeconds, _ := strconv.ParseInt(v[0], 10, 64) // Error handling is noop.
 			retryAfter := time.Duration(retryAfterSeconds) * time.Second
-			log.Println("error:", err.Error(), "Retry-After=", v, "retryAfterSeconds: ", retryAfterSeconds, "retryAfter=", retryAfter.Seconds(), "debug", runtime.WhereAmI())
+			log.Println("[Retry-After] error:", err.Error(), "Retry-After=", v, "retryAfterSeconds: ", retryAfterSeconds, "retryAfter=", retryAfter.Seconds(), "debug", runtime.WhereAmI())
 			time.Sleep(retryAfter)
 			return errors.New("API abuse detected..."), false
 		}
@@ -248,19 +258,19 @@ func limitHandler(statusCode int, rate github.Rate, hdrs http.Header, err error)
 		underlyingErr := errors.Cause(err)
 
 		if e, ok = err.(*github.AbuseRateLimitError); ok {
-			log.Println("error:", err.Error(), "e:", e, "err.(*github.AbuseRateLimitError) have triggered an abuse detection mechanism.", underlyingErr, "debug", runtime.WhereAmI())
+			log.Println("[AbuseRateLimitError] error:", err.Error(), "e:", e, "err.(*github.AbuseRateLimitError) have triggered an abuse detection mechanism.", underlyingErr, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
 			return errors.New("API abuse detected..."), false
 		}
 
 		switch underlyingErr.(type) {
 		case *github.RateLimitError:
-			log.Println("RateLimitError, debug=", runtime.WhereAmI())
+			log.Println("[RateLimitError] debug=", runtime.WhereAmI())
 			return errorRateLimitReached, true
 
 		case *github.AbuseRateLimitError:
 			var e *github.AbuseRateLimitError
-			log.Println("error:", err.Error(), "e:", e, "*github.AbuseRateLimitError.", underlyingErr, "*e.RetryAfter=", *e.RetryAfter, "debug", runtime.WhereAmI())
+			log.Println("[AbuseRateLimitError] error:", err.Error(), "e:", e, "*github.AbuseRateLimitError.", underlyingErr, "*e.RetryAfter=", *e.RetryAfter, "debug", runtime.WhereAmI())
 			time.Sleep(*e.RetryAfter)
 			return errors.New("API abuse detected..."), false
 
@@ -269,7 +279,7 @@ func limitHandler(statusCode int, rate github.Rate, hdrs http.Header, err error)
 				strings.Contains(err.Error(), "abuse detection") ||
 				strings.Contains(err.Error(), "try again") {
 				time.Sleep(time.Duration(random(150, 720)) * time.Millisecond)
-				log.Println("error:", err.Error(), "underlyingErr.(type).default", underlyingErr, "debug", runtime.WhereAmI())
+				log.Println("[default] error:", err.Error(), "underlyingErr.(type).default", underlyingErr, "debug", runtime.WhereAmI())
 			}
 			return err, false
 		}
@@ -342,7 +352,7 @@ func (g *Github) checkRateLimit(statusCode int, rate github.Rate) {
 		if rate.Limit == 0 && rate.Remaining == 0 && statusCode == 403 {
 			sleep = defaultAbuseDelay
 		}
-		log.Println("checkRateLimit().rate", rate, "statusCode:", statusCode, " sleep", sleep, "duration", time.Duration(sleep), "abuse?", (rate.Limit == 0 && rate.Remaining == 0 && statusCode == 403))
+		log.Println("[checkRateLimit].rate", rate, "statusCode:", statusCode, " sleep", sleep, "duration", time.Duration(sleep), "abuse?", (rate.Limit == 0 && rate.Remaining == 0 && statusCode == 403))
 		time.Sleep(sleep)
 	}
 }
@@ -354,12 +364,12 @@ func (g *Github) getRateLimit() (int, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	if g.client == nil {
-		g.client = getClient(g.ctoken)
+	if g.Client == nil {
+		g.Client = getClient(g.ctoken)
 	}
 
 	g.counters.Increment("rate.get.limit", 1)
-	limits, _, err := g.client.RateLimits(context.Background())
+	limits, _, err := g.Client.RateLimits(context.Background())
 	if err != nil {
 		return 0, err
 	}
@@ -387,7 +397,7 @@ func checkRateLimit(statusCode int, rate github.Rate) {
 
 	if rate.Remaining <= 10 || statusCode == 403 {
 		sleep := time.Until(rate.Reset.Time) + (time.Second * 10)
-		log.Println("statusCode:", statusCode, "checkRateLimit().rate", rate, " sleep", sleep, "duration", time.Duration(sleep))
+		log.Println("[checkRateLimit] statusCode:", statusCode, "checkRateLimit().rate", rate, " sleep", sleep, "duration", time.Duration(sleep))
 		time.Sleep(sleep)
 	}
 }

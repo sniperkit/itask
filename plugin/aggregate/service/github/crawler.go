@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 	"golang.org/x/oauth2"
 )
 

@@ -5,11 +5,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/github"
 	"github.com/pkg/errors"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 )
 
 var (
+	errInvalidPackage         = errors.New("the package is not a Go package")
+	errInvalidRepository      = errors.New("the repository is not found")
+	errRateLimited            = errors.New("Github rate limited")
+	errInvalidClient          = errors.New("error, invalid service client connection")
 	errorNotStruct            = errors.New("error, not a struct")
 	errorMappingJson          = errors.New("error while trying to map json response")
 	errorRateLimitLowLevel    = errors.New("error, rate limit low level")

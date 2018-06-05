@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	// "github.com/cnf/structhash"
 	"github.com/gregjones/httpcache"
 	cuckoo "github.com/seiflotfy/cuckoofilter"
 	"github.com/willf/bloom"
@@ -23,10 +24,11 @@ import (
 
 var (
 	CacheEngine     = "badger"
-	CachePrefixPath = "./shared/data/cache/http"
+	CacheDrive      = "/Volumes/HardDrive/" // ""
+	CachePrefixPath = CacheDrive + "./shared/data/cache/http"
 	xcache          httpcache.Cache
-	taskTTL         time.Duration = time.Duration(24 * 7 * time.Hour)
-	blmflt                        = bloom.New(200000, 5)
+	taskTTL         time.Duration = time.Duration(24 * 120 * time.Hour)
+	blmflt                        = bloom.New(500000, 5)
 	cuckflt                       = cuckoo.NewDefaultCuckooFilter()
 )
 
@@ -38,6 +40,8 @@ func parseTimeStamp(utime string) (*time.Time, error) {
 	t := time.Unix(i, 0)
 	return &t, nil
 }
+
+func getTasksRank() {}
 
 func skipTasksWithTTL(filepath string) {
 	fp, err := os.Open(filepath)
@@ -63,14 +67,9 @@ func skipTasksWithTTL(filepath string) {
 			log.Infoln("[TSK-ALLOW] task info, service=", line.Get("service"), "topic=", line.Get("topic"), "expiresAt=", expiresAt)
 			continue
 		}
-
-		// log.Warnln("[TSK-EXCLUDE] taskInfo, service=", line.Get("service"), "topic=", line.Get("topic"), "expiresAt=", expiresAt)
+		//taskHash := fmt.Sprintf("%x", structhash.Sha1(line.Get("topic"), 1))
+		//cuckflt.InsertUnique([]byte(taskHash))
 		cuckflt.InsertUnique([]byte(line.Get("topic")))
-		// cfok := cuckflt.InsertUnique([]byte(line.Get("topic")))
-
-		// if !cfok {
-		//	log.Errorln("[TSK-ERROR] taskInfo, service=", line.Get("service"), "topic=", line.Get("topic"), "expiresAt=", expiresAt) // The result of the filter is inconsistent
-		// }
 
 	}
 
@@ -212,6 +211,7 @@ func newCacheBackend(engine string, prefixPath string) (backend httpcache.Cache,
 				SyncWrites:  false,
 				Debug:       false,
 				Compress:    true,
+				TTL:         time.Duration(120 * 24 * time.Hour),
 			})
 
 	case "memory":
@@ -225,14 +225,14 @@ func newCacheBackend(engine string, prefixPath string) (backend httpcache.Cache,
 }
 
 const (
-	defaultSvc       = "github"
+	defaultSvc       = "gh"
 	defaultSvcDomain = "https://api.github.com/"
 )
 
 func cacheTaskResult(createdAt time.Time, service string, key string, obj map[string]interface{}) {
-	go func() {
-		xcache.Set(key, toBytes(mapToString(obj)))
-	}()
+	//go func() {
+	xcache.Set(key, toBytes(mapToString(obj)))
+	//}()
 }
 
 func cacheFilter(filepath string) {}

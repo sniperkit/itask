@@ -7,10 +7,43 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
 )
 
-// 解析传入的 query 字符串，得到最后请求时间
+func getString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+func getInt(i *int) int {
+	if i == nil {
+		return 0
+	}
+	return *i
+}
+
+func getTimestamp(ts *github.Timestamp) github.Timestamp {
+	if ts == nil {
+		return github.Timestamp{}
+	}
+	return *ts
+}
+
+func FormatDate(date time.Time) string {
+	return date.Format(DateFormat)
+}
+
+func ParseDate(date string) (time.Time, error) {
+	return time.Parse(DateFormat, date)
+}
+
+func escapeSearch(s string) string {
+	return strings.Replace(s, " ", "+", -1)
+}
+
+// Parse the incoming query string to get the last request time
 func SplitQuery(query string) string {
 	if query == "" {
 		return ""
@@ -23,9 +56,9 @@ func SplitQuery(query string) string {
 	return dateStr
 }
 
-// SplitDate 解析返回的 stopAt 字符串，得到具体年月日
+// SplitDate parses the returned stopAt string to get the date
 // stopAt:
-//     "2006-01-02"
+// "2006-01-02"
 func SplitDate(stopAt string) ([]int, error) {
 	dateSlice := strings.Split(stopAt, "-")
 
@@ -37,9 +70,9 @@ func SplitDate(stopAt string) ([]int, error) {
 	return dateInt, nil
 }
 
-// StrToInt 将字符串转换为 int
+// StrToInt will string converted to int
 // dates:
-//     ["2006", "01", "02"]
+// ["2006", "01", "02"]
 func StrToInt(dates []string) ([]int, error) {
 	var datesInt []int
 
@@ -55,7 +88,7 @@ func StrToInt(dates []string) ([]int, error) {
 	return datesInt, nil
 }
 
-// 将日期增加相应月份，再将结果转换为字符串，以便给 SearchReposByCreated 函数使用
+// Add the date to the corresponding month, then convert the result to a string for use with the SearchReposByCreated function
 // date: "2006-01-02"
 func DateStrInc(date string, month int) (string, error) {
 	startAt, err := time.Parse("2006-01-02", date)

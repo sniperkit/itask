@@ -15,6 +15,22 @@ var (
 	xtransport      *httpcache.Transport
 )
 
+/*
+keepAliveTimeout:= 600 * time.Second
+timeout:= 2 * time.Second
+defaultTransport := &http.Transport{
+    Dial: (&net.Dialer{
+                     KeepAlive: keepAliveTimeout,}
+           ).Dial,
+    MaxIdleConns: 100,
+    MaxIdleConnsPerHost: 100,
+}
+client:= &http.Client{
+           Transport: defaultTransport,
+           Timeout:   timeout,
+}
+*/
+
 func initCacheTransport() (httpcache.Cache, *httpcache.Transport) {
 	defer funcTrack(time.Now())
 

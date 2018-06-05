@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/go-github/github"
+	"github.com/sniperkit/xvcs/plugin/provider/github/go-github/pkg"
+
 	"go.uber.org/zap"
 	"gopkg.in/mgo.v2"
 
